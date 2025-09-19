@@ -1,0 +1,146 @@
+<div class="Container">
+  <header class="PageHeader">
+    <div class="SectionHeader SectionHeader--center">
+      
+    </div>
+  </header>
+
+      {{- page.content -}}
+  
+  
+  
+  		<article class="Article" data-section-id="article-template" data-section-type="article">
+  <div class="our-story-section">
+  <div class="Article__Wrapper">
+    <div class="Article__Content">
+      <header class="Article__Header"><h1 class="Article__Title Heading u-h1">Escape</h1>
+      </header>
+
+      <div class="Article__Body Rte">
+        <meta charset="utf-8">
+<p>Nestled in our gorgeous vineyard estate in Akluj lies a harbour. A harbour for those who desire an escape from the noise of our fast-paced cosmopolitan lives. A harbour for those who wish to immerse themselves deeply in the loving caress of our vineyards. A harbour for you.</p>
+<p><img src="https://cdn.shopify.com/s/files/1/0491/6628/7016/files/story_escape_1_1024x1024.jpg?v=1604574166" alt=""></p>
+<p>Nurture your soul and heal your spirit as you soak in the goodness of our hidden sanctuary.&nbsp;</p>
+<p>Pamper yourself with the best of wine, food and nature in our guesthouse - your home away from home.&nbsp;</p>
+<p>Visit our cellars for a tasting of our various vintages and enjoy lovingly prepared authentic Maharashtrian cuisine, and a variety of others too, from our wonderful chefs…</p>
+<p><img src="https://cdn.shopify.com/s/files/1/0491/6628/7016/files/story_escape_2_1024x1024.jpg?v=1604574231" alt=""></p>
+<p>Create memories for a lifetime with your friends and family, or treat your special one to the weekend getaway they deserve. After all, there is very little that is more romantic than a vineyard in the evening.</p>
+<p><img src="https://cdn.shopify.com/s/files/1/0491/6628/7016/files/story_escape_3_1024x1024.jpg?v=1604574260" alt=""></p>
+<p>In our homely guesthouse, you’re spoilt for choice.&nbsp;</p>
+<p>Cycle through endless rows of vines and enjoy the surrounding fauna as chirp good morning to you…&nbsp;</p>
+<p>Wine and dine in a machan with a panoramic view of our vineyards.</p>
+<p>Count on us to turn your vacation into an unforgettable experience.</p>
+<p><img src="https://cdn.shopify.com/s/files/1/0491/6628/7016/files/story_escape_4_1024x1024.jpg?v=1604574288" alt=""></p>
+<p>Every day is an adventure with walks through our vineyards, visits to our winery, tastings of our award winning wines and blissfully relaxing sunsets.</p>
+<p>And while you're here, may we recommend an exclusive tour through our state-of-the-art Cellar: Vintage tasting anyone?</p>
+<p><img src="https://cdn.shopify.com/s/files/1/0491/6628/7016/files/Artboard_6_13baef25-f3d5-473b-8ec9-77bb67a80c81_1024x1024.jpg?v=1609924073" alt=""></p>
+<p>Delight your senses on this journey of discovery. Come home to Fratelli Vineyards.</p>
+      </div></div></div>
+</div></article>
+  
+  
+  
+  
+  
+
+      {%- form 'contact', class: 'Form Form--spacingTight' -%}
+        {%- if form.posted_successfully? -%}
+          <p class="Alert Alert--success">{{ 'contact.form.successfully_sent' | t }}</p>
+        {%- endif -%}
+
+        {%- if form.errors -%}
+          <div class="Form__Alert Alert Alert--error">
+            <ul class="Alert__ErrorList">
+              {%- for field in form.errors -%}
+                {%- if field == 'form' -%}
+                  <li class="Alert__ErrorItem">{{ form.errors.messages[field] }}</li>
+                {%- else -%}
+                  <li class="Alert__ErrorItem"><strong>{{ form.errors.translated_fields[field] }}</strong> {{ form.errors.messages[field] }}</li>
+                {%- endif -%}
+              {%- endfor -%}
+            </ul>
+          </div>
+        {%- endif -%}
+
+        <div class="Form__Group">
+          <div class="Form__Item">
+            <input type="text" class="Form__Input" name="contact[name]" aria-label="{{ 'escape.form.name' | t }}" placeholder="{{ 'escape.form.name' | t }}" required {% if customer %}value="{{ customer.name }}"{% endif %}>
+            <label class="Form__FloatingLabel">{{ 'escape.form.name' | t }}</label>
+          </div>
+
+          <div class="Form__Item">
+            <input type="email" class="Form__Input" name="contact[email]" aria-label="{{ 'escape.form.email' | t }}" placeholder="{{ 'escape.form.email' | t }}" required {% if customer %}value="{{ customer.email }}"{% endif %}>
+            <label class="Form__FloatingLabel">{{ 'escape.form.email' | t }}</label>
+          </div>
+        </div>
+  
+  		<div class="Form__Group">
+          <div class="Form__Item">
+            <input type="text" class="Form__Input" name="contact[phone]" aria-label="{{ 'escape.form.phone' | t }}" placeholder="{{ 'escape.form.phone' | t }}">
+            <label class="Form__FloatingLabel">{{ 'escape.form.phone' | t }}</label>
+          </div>
+        </div>		
+  
+  		<div class="Form__Group">
+          <div class="Form__Item">
+            <input type="text" class="Form__Input" id="start_date" name="contact[start_date]" aria-label="{{ 'escape.form.start_date' | t }}" placeholder="{{ 'escape.form.start_date' | t }}">
+            <label class="Form__FloatingLabel">{{ 'escape.form.start_date' | t }}</label>
+          </div>
+
+          <div class="Form__Item">
+            <input type="text" class="Form__Input" id="end_date" name="contact[end_date]" aria-label="{{ 'escape.form.end_date' | t }}" placeholder="{{ 'escape.form.end_date' | t }}">
+            <label class="Form__FloatingLabel">{{ 'escape.form.end_date' | t }}</label>
+          </div>
+          </div>
+
+        <div class="Form__Item">
+          <textarea name="contact[body]" cols="30" rows="10" class="Form__Textarea" aria-label="{{ 'escape.form.message' | t }}" placeholder="{{ 'escape.form.message' | t }}" required></textarea>
+          <label class="Form__FloatingLabel">{{ 'escape.form.message' | t }}</label>
+        </div>
+
+        <button type="submit" class="Form__Submit Button Button--primary Button--full">{{ 'escape.form.submit' | t }}</button>
+      {%- endform -%}
+    
+    </div>
+
+<style>
+  .Footer__Block--text{
+  	margin-top:15px;
+  }
+  .Footer__Title{
+   	margin-bottom: 0px !important; 
+  }
+  .features--heading-uppercase .Heading {
+      letter-spacing: 0.1em !important;
+  }
+  .row {
+    	display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+    }
+  	.col-md-6 {
+      -webkit-box-flex: 0;
+          -ms-flex: 0 0 100%;
+          flex: 0 0 100%;
+          max-width: 100%;
+      }
+  @media (min-width: 768px) {
+    .col-md-6 {
+      -webkit-box-flex: 0;
+          -ms-flex: 0 0 50%;
+          flex: 0 0 50%;
+          max-width: 50%;
+      }
+	
+}
+  
+</style>
+{% schema %}
+{
+  "name": "Escape",
+  "settings": [],
+  "blocks": []
+}
+{% endschema %}

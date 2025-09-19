@@ -1,0 +1,311 @@
+<div class="Container">
+  <header class="PageHeader">
+    <div class="SectionHeader SectionHeader--center">
+      <h1 class="SectionHeader__Heading Heading u-h1">{{ page.title }}</h1>
+    </div>
+  </header>
+	
+    <div class="row">
+      <div class="col-md-6">
+        <div class="row">
+          <div class="col-md-6">
+            <div class=" Footer__Block--text">
+              {%- if section.settings.corporate_office != blank -%}
+              <h2 class="Footer__Title Heading u-h6">{{ section.settings.corporate_office | escape }}</h2>
+              {%- endif -%}
+              {%- if section.settings.corporate_office_content != blank -%}
+              <div class="Footer__Content Rte">
+                {{ section.settings.corporate_office_content }}
+              </div>
+              {%- endif -%}
+			</div>
+            <div class=" Footer__Block--text">
+              {%- if section.settings.media_queries != blank -%}
+              <h2 class="Footer__Title Heading u-h6">{{ section.settings.media_queries | escape }}</h2>
+              {%- endif -%}
+              {%- if section.settings.media_queries_content != blank -%}
+              <div class="Footer__Content Rte">
+                {{ section.settings.media_queries_content }}
+              </div>
+              {%- endif -%}
+			</div>
+            <div class=" Footer__Block--text">
+              {%- if section.settings.carer_opprrtunities != blank -%}
+              <h2 class="Footer__Title Heading u-h6">{{ section.settings.carer_opprrtunities | escape }}</h2>
+              {%- endif -%}
+              {%- if section.settings.carer_opprrtunities_content != blank -%}
+              <div class="Footer__Content Rte">
+                {{ section.settings.carer_opprrtunities_content }}
+              </div>
+              {%- endif -%}
+            </div>
+          </div>
+          <div class="col-md-6 ">
+            <div class=" Footer__Block--text">
+
+              {%- if section.settings.winery_wineyard != blank -%}
+              <h2 class="Footer__Title Heading u-h6">{{ section.settings.winery_wineyard | escape }}</h2>
+              {%- endif -%}
+              {%- if section.settings.winery_wineyard_content != blank -%}
+              <div class="Footer__Content Rte">
+                {{ section.settings.winery_wineyard_content }}
+              </div>
+              {%- endif -%}
+			</div>
+            <div class=" Footer__Block--text">
+              {%- if section.settings.trade_export_queries != blank -%}
+              <h2 class="Footer__Title Heading u-h6">{{ section.settings.trade_export_queries | escape }}</h2>
+              {%- endif -%}
+              {%- if section.settings.trade_export_queries_content != blank -%}
+              <div class="Footer__Content Rte">
+                {{ section.settings.trade_export_queries_content }}
+              </div>
+              {%- endif -%}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        
+      {{- page.content -}}
+
+      {%- form 'contact', class: 'Form Form--spacingTight' -%}
+        {%- if form.posted_successfully? -%}
+          <p class="Alert Alert--success">{{ 'contact.form.successfully_sent' | t }}</p>
+        {%- endif -%}
+
+        {%- if form.errors -%}
+          <div class="Form__Alert Alert Alert--error">
+            <ul class="Alert__ErrorList">
+              {%- for field in form.errors -%}
+                {%- if field == 'form' -%}
+                  <li class="Alert__ErrorItem">{{ form.errors.messages[field] }}</li>
+                {%- else -%}
+                  <li class="Alert__ErrorItem"><strong>{{ form.errors.translated_fields[field] }}</strong> {{ form.errors.messages[field] }}</li>
+                {%- endif -%}
+              {%- endfor -%}
+            </ul>
+          </div>
+        {%- endif -%}
+
+        <div class="Form__Group">
+          <div class="Form__Item">
+            <input type="text" class="Form__Input" name="contact[name]" aria-label="{{ 'contact.form.name' | t }}" placeholder="{{ 'contact.form.name' | t }}" required {% if customer %}value="{{ customer.name }}"{% endif %}>
+            <label class="Form__FloatingLabel">{{ 'contact.form.name' | t }}</label>
+          </div>
+
+          <div class="Form__Item">
+            <input type="email" class="Form__Input" name="contact[email]" aria-label="{{ 'contact.form.email' | t }}" placeholder="{{ 'contact.form.email' | t }}" required {% if customer %}value="{{ customer.email }}"{% endif %}>
+            <label class="Form__FloatingLabel">{{ 'contact.form.email' | t }}</label>
+          </div>
+        </div>
+
+        {%- for block in section.blocks -%}
+          {%- assign field_title = block.settings.title -%}
+
+          {%- if field_title == blank -%}
+            {%- capture field_title -%}Custom field {% increment custom_field %}{%- endcapture -%}
+          {%- endif -%}
+
+          {%- if block.type == 'text' -%}
+            <div class="Form__Item">
+              {%- if block.settings.use_long_text -%}
+                <textarea name="contact[{{ field_title | escape }}]" cols="30" rows="10" class="Form__Textarea" aria-label="{{ block.settings.title | escape }}" placeholder="{{ block.settings.title | escape }}" {% if block.settings.is_required %}required{% endif %}></textarea>
+                <label class="Form__FloatingLabel">{{ block.settings.title | escape }}</label>
+              {%- else -%}
+                <input type="text" class="Form__Input" name="contact[{{ field_title | escape }}]" aria-label="{{ block.settings.title | escape }}" placeholder="{{ block.settings.title | escape }}" {% if block.settings.is_required %}required{% endif %}>
+                <label class="Form__FloatingLabel">{{ block.settings.title | escape }}</label>
+              {%- endif -%}
+            </div>
+          {%- elsif block.type == 'dropdown' -%}
+            {%- assign values = block.settings.values | split: ',' -%}
+
+            {%- if values == empty -%}
+              {%- continue -%}
+            {%- endif -%}
+
+            <div class="Form__Item">
+              <div class="Form__Select Select Select--primary">
+                {%- render 'icon' with 'select-arrow' -%}
+
+                <select name="contact[{{ field_title | escape }}]" title="{{ block.settings.title | escape }}" required>
+                  <option value="" disabled selected>{{ block.settings.title | escape }}</option>
+
+                  {%- for value in values -%}
+                    {%- assign trim_value = value | strip -%}
+
+                    <option value="{{ trim_value | escape }}">{{ trim_value | escape }}</option>
+                  {%- endfor -%}
+                </select>
+              </div>
+            </div>
+          {%- endif -%}
+        {%- endfor -%}
+
+        <div class="Form__Item">
+          <textarea name="contact[body]" cols="30" rows="10" class="Form__Textarea" aria-label="{{ 'contact.form.message' | t }}" placeholder="{{ 'contact.form.message' | t }}" required></textarea>
+          <label class="Form__FloatingLabel">{{ 'contact.form.message' | t }}</label>
+        </div>
+
+        <button type="submit" class="Form__Submit Button Button--primary Button--full">{{ 'contact.form.submit' | t }}</button>
+      {%- endform -%}
+    </div>
+      </div>
+    </div>
+
+<style>
+  .Footer__Block--text{
+  	margin-top:15px;
+  }
+  .Footer__Title{
+   	margin-bottom: 0px !important; 
+  }
+  .features--heading-uppercase .Heading {
+      letter-spacing: 0.1em !important;
+  }
+  .row {
+    	display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+    }
+  	.col-md-6 {
+      -webkit-box-flex: 0;
+          -ms-flex: 0 0 100%;
+          flex: 0 0 100%;
+          max-width: 100%;
+      }
+  @media (min-width: 768px) {
+    .col-md-6 {
+      -webkit-box-flex: 0;
+          -ms-flex: 0 0 50%;
+          flex: 0 0 50%;
+          max-width: 50%;
+      }
+	
+}
+  
+</style>
+{% schema %}
+{
+  "name": "Contact page",
+  "settings": [
+		{
+          "type": "text",
+          "id": "corporate_office",
+          "label": "Corporate Office",
+          "default": "Corporate Office"
+        },
+        {
+          "type": "html",
+          "id": "corporate_office_content",
+          "label": "Corporate Office Address",
+          "default": "<p>Corporate Office Address</p>"
+        },
+		{
+          "type": "text",
+          "id": "media_queries",
+          "label": "Media Queries",
+          "default": "Media Queries"
+        },
+        {
+          "type": "html",
+          "id": "media_queries_content",
+          "label": "Media Queries Text",
+          "default": "<p>Media Queries Text</p>"
+        },
+		{
+          "type": "text",
+          "id": "carer_opprrtunities",
+          "label": "Carer Opportunities Heading",
+          "default": "Carer Opportunities Heading"
+        },
+        {
+          "type": "text",
+          "id": "carer_opprrtunities_content",
+          "label": "Carer Opportunities Email",
+          "default": "abc@xyz.com"
+        },
+		{
+          "type": "text",
+          "id": "winery_wineyard",
+          "label": "Winery & Wineyard",
+          "default": "Winery & Wineyard"
+        },
+        {
+          "type": "html",
+          "id": "winery_wineyard_content",
+          "label": "Winery & Wineyard Address",
+          "default": "<p>Winery & Wineyard Address</p>"
+        },
+		{
+          "type": "text",
+          "id": "trade_export_queries",
+          "label": "Trade & Export Quries Heading",
+          "default": "Trade & Export Quries"
+        },
+        {
+          "type": "html",
+          "id": "trade_export_queries_content",
+          "label": "Trade & Export Quries Content",
+          "default": "<p>Trade & Export Quries Content</p>"
+        }
+	],
+  "blocks": [
+    {
+      "type": "text",
+      "name": "Text field",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Name",
+          "default": "Custom field"
+        },
+        {
+          "type": "checkbox",
+          "id": "use_long_text",
+          "label": "Use long text",
+          "default": false
+        },
+        {
+          "type": "checkbox",
+          "id": "is_required",
+          "label": "Field is required",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "dropdown",
+      "name": "Dropdown",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Name",
+          "default": "Custom field"
+        },
+        {
+          "type": "text",
+          "id": "values",
+          "label": "Values",
+          "info": "Separate each value by a comma.",
+          "default": "value 1, value 2, value 3"
+        }
+      ]
+    }
+  ],
+  "default": {
+    "blocks": [
+      {
+        "type": "text",
+        "settings": {
+          "title": "Subject"
+        }
+      }
+    ]
+  }
+}
+{% endschema %}

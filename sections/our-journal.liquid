@@ -1,0 +1,303 @@
+{%- capture flickity_options -%}
+{
+  "prevNextButtons": false,
+  "pageDots": {% if section.blocks.size > 1 %}true{% else %}false{% endif %},
+  "setGallerySize": true,
+  "wrapAround": true,
+  "watchCSS": true,
+  "dragThreshold": 8
+}
+{%- endcapture -%}
+
+<section id="section-{{ section.id }}" data-section-id="{{ section.id }}" data-section-type="collection-list">
+  {%- capture collection_items -%}
+    {%- for block in section.blocks -%}
+      {%- assign collection = collections[block.settings.collection] -%}
+      {%- render 'collection-item', block: block, collection: collection, apply_overlay: block.settings.apply_overlay -%}
+    {%- endfor -%}
+  {%- endcapture -%}
+
+  {%- if section.settings.stack_on_mobile -%}
+    <div class="CollectionList CollectionList--grid {% if section.settings.add_spacing %}CollectionList--spaced{% endif %}">
+      {{ collection_items }}
+      {{section.settings.html_area}}{% unless section.settings.html_area contains "feed-" %}<div id="insta-feed"></div>{% endunless  %}
+    </div>
+  {%- else -%}
+    <div class="Carousel Carousel--insideDots CollectionList {% if section.settings.add_spacing %}CollectionList--spaced{% endif %}" data-flickity-config='{{ flickity_options }}'>
+      {{ collection_items }}
+      {{section.settings.html_area}}{% unless section.settings.html_area contains "feed-" %}<div id="insta-feed"></div>{% endunless  %}
+    </div>
+  {%- endif -%}
+  
+</section>
+
+<style>
+  #shopify-section-1602671521433 .CollectionList--grid {
+    margin: 0;
+  }
+  
+  #section-1602671521433 .CollectionItem.Carousel__Cell {
+    min-width: 50%;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  #shopify-section-1602671521433 #insta-feed { 
+    height: 100%;
+    margin: 0;
+  }
+  #section-{{ section.id }} .CollectionItem .Heading,
+  #section-{{ section.id }} .flickity-page-dots {
+    color: {{ section.settings.text_color }};
+  }
+
+  #section-{{ section.id }} .CollectionItem__Link {
+    color: {{ section.settings.button_color }};
+    border-color: {{ section.settings.text_color }};
+  }
+
+  #section-{{ section.id }} .CollectionItem__Link::before {
+    background-color: {{ section.settings.text_color }};
+  }
+
+  @media (-moz-touch-enabled: 0), (hover: hover) {
+    #section-{{ section.id }} .CollectionItem__Link:hover {
+      color: {{ section.settings.text_color }};
+    }
+  }
+  
+  #insta-feed{width:{{section.settings.feed_width}}%;}#insta-feed h2{font-size:{{section.settings.heading_size}}px;font-family: {{section.settings.heading_font.family }};}{{ section.settings.heading_font | font_face }}
+	@media (min-width: 767px) {
+		#shopify-section-1602671521433 .CollectionList--grid .CollectionItem__Wrapper {
+          height:100%;
+        }
+	}
+	@media (max-width: 767px) {
+        #insta-feed {
+            width: 100%;
+            padding: 0 10px;
+            margin-top: 10px !important;
+        }
+    }
+</style>
+
+{% schema %}
+{
+  "name": "Our Journal",
+  "max_blocks": 18,
+  "settings": [
+    {
+      "type": "select",
+      "id": "image_size",
+      "label": "Image size",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small"
+        },
+        {
+          "value": "normal",
+          "label": "Normal"
+        },
+        {
+          "value": "large",
+          "label": "Large"
+        }
+      ],
+      "default": "normal"
+    },
+    {
+      "type": "checkbox",
+      "id": "add_spacing",
+      "label": "Add spacing",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "expand_collection",
+      "label": "Expand collections to fill row",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "stack_on_mobile",
+      "label": "Stack on mobile",
+      "default": true
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_color",
+      "label": "Button text",
+      "default": "#363636"
+    },{
+		"type":"font_picker",
+        "label":"Heading font.",
+        "id":"heading_font",
+        "default": "helvetica_n4"
+    },
+    {
+        "type":"range",
+        "id":"heading_size",
+        "min":10,
+        "max":30,
+        "step":1,
+        "unit":"px",
+        "label":"Heading Size",
+        "default":20
+    },
+    {
+      "type":"range",
+      "id":"feed_width",
+      "min":50,
+      "max":100,
+      "step":5,
+      "unit":"%",
+      "label":"Feed Width",
+      "default":100
+    }
+  ],
+  "blocks": [
+    {
+      "type": "collection",
+      "name": "Collection",
+      "settings": [
+        {
+          "type": "collection",
+          "id": "collection",
+          "label": "Collection"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image",
+          "info": "1120 x 1200px .jpg recommended"
+        },
+        {
+          "type": "select",
+          "id": "image_alignment",
+          "label": "Image alignment",
+          "options": [
+            {
+              "value": "top left",
+              "label": "Top left"
+            },
+            {
+              "value": "top center",
+              "label": "Top center"
+            },
+            {
+              "value": "top right",
+              "label": "Top right"
+            },
+            {
+              "value": "center left",
+              "label": "Middle left"
+            },
+            {
+              "value": "center center",
+              "label": "Middle center"
+            },
+            {
+              "value": "center right",
+              "label": "Middle right"
+            },
+            {
+              "value": "bottom left",
+              "label": "Bottom left"
+            },
+            {
+              "value": "bottom center",
+              "label": "Bottom center"
+            },
+            {
+              "value": "bottom right",
+              "label": "Bottom right"
+            }
+          ],
+          "default": "center center"
+        },
+        {
+          "type": "select",
+          "id": "content_position",
+          "label": "Content position",
+          "options": [
+            {
+              "value": "middleLeft",
+              "label": "Middle left"
+            },
+            {
+              "value": "middleRight",
+              "label": "Middle right"
+            },
+            {
+              "value": "middleCenter",
+              "label": "Middle center"
+            },
+            {
+              "value": "bottomLeft",
+              "label": "Bottom left"
+            },
+            {
+              "value": "bottomRight",
+              "label": "Bottom right"
+            },
+            {
+              "value": "bottomCenter",
+              "label": "Bottom center"
+            }
+          ],
+          "default": "bottomLeft"
+        },
+        {
+          "type": "text",
+          "id": "subheading",
+          "label": "Sub-heading",
+          "default": "Sub-heading"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Heading",
+          "default": "Collection name"
+        },
+        {
+          "type": "text",
+          "id": "button_text",
+          "label": "Button text",
+          "default": "View products"
+        },
+        {
+          "type": "url",
+          "id": "button_link",
+          "label": "Button link",
+          "info": "If none is set, collection URL is used."
+        },
+        {
+          "type": "checkbox",
+          "id": "apply_overlay",
+          "label": "Apply overlay on image",
+          "info": "This can improve text visibility.",
+          "default": true
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "category": "Advanced",
+      "name": "Our Journal",
+      "settings": {},
+      "blocks": [
+        {
+          "type": "collection"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
