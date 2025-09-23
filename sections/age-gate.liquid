@@ -152,6 +152,8 @@
     function hideAgeGateInstant() {
       var root = $(rootSel);
       if (root) root.style.display = 'none';
+      var pageContent = document.getElementById('page-content');
+      if (pageContent) pageContent.style.display = 'block';
     }
 
     function showAgeGate() {
