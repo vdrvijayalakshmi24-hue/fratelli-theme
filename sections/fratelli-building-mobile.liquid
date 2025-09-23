@@ -13,11 +13,17 @@
       /* ---------- Layout / scrub section ---------- */
       .dup2-vd-wrapper {
         position: relative;
-        height: 200vh; /* TRACK_VH */
+        height: 250vh; /* TRACK_VH */
         width: 100%;
         overflow: visible;
         box-sizing: border-box;
         background: #000;
+      }
+
+      @media (min-width: 1024px) {
+        .dup2-vd-wrapper {
+          height: 200vh !important; /* TRACK_VH */
+        }
       }
   
       .dup2-vd-pin {
@@ -169,117 +175,135 @@
     </section>
   
     <script>
-      (function () {
+      (function() {
         var sectionId = '{{ section.id }}';
-  
-        /* Video scrub (dup2 selectors) */
-        (function videoScrubDup2() {
-          var wrapper = document.getElementById('dup2-vd-wrapper-' + sectionId);
-          var pin = document.getElementById('dup2-vd-pin-' + sectionId);
-          var canvas = document.getElementById('dup2-vd-canvas-' + sectionId);
-          var video = document.getElementById('dup2-vd-video-' + sectionId);
-          if (!wrapper || !pin || !canvas || !video) return;
-  
-          var ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
-          var duration = 0, startY = 0, endY = 0, seeking = false, pending = null, rAF = 0;
-          function clamp(v,a,b){return Math.min(b,Math.max(a,v));}
-          function setAbsoluteAt(y){ pin.style.position='absolute'; pin.style.top=y+'px'; pin.style.left='0'; pin.style.right='0'; pin.style.height='100vh'; pin.style.width='100%'; }
-          function setFixedTop(){ pin.style.position='fixed'; pin.style.top='0'; pin.style.left='0'; pin.style.right='0'; pin.style.height='100vh'; pin.style.width='100%'; }
-          function updatePin(){ var rect=wrapper.getBoundingClientRect(); var vh=window.innerHeight||document.documentElement.clientHeight; if(rect.top>0){setAbsoluteAt(0);return;} if(rect.bottom<=vh){setAbsoluteAt(wrapper.offsetHeight-vh);return;} setFixedTop(); }
-          function measure(){ var rect=wrapper.getBoundingClientRect(); var pageY=window.pageYOffset||document.documentElement.scrollTop||0; startY=pageY+rect.top; endY=startY+wrapper.offsetHeight-window.innerHeight; updatePin(); }
-          function draw(){ try{ ctx.drawImage(video,0,0,canvas.width,canvas.height);}catch(e){} }
-          function doSeek(t){ seeking=true; try{ if(typeof video.fastSeek==='function') video.fastSeek(t); else video.currentTime=t; }catch(e){ seeking=false; } }
-          function onSeeked(){ draw(); if(pending!=null){ var next=pending; pending=null; doSeek(next);} else { seeking=false; } }
-          function onScrollTick() {
-            rAF = 0;
-            var pageY = window.pageYOffset || document.documentElement.scrollTop || 0;
-            var prog = (pageY - startY) / Math.max(1, endY - startY);
-            var p = clamp(prog, 0, 1);
-            var tRaw = p * duration;
-            var STEP = 1/30;
-            var t = clamp(Math.round(tRaw / STEP) * STEP, 0, Math.max(0, duration - 1e-6));
-            if (!seeking) {
-              doSeek(t);
-            } else {
-              pending = t;
-            }
-            updatePin();
+        var isMobile = window.innerWidth <= 767; // Match your mobile breakpoint
+        var pinSuffix = isMobile ? 'mobile' : 'desktop';
+        var videoInitialized = false;
+        var cleanupVideoScrub = null;
+        
+        function initializeVideoScrub() {
+          console.log('initializeVideoScrub called for fratelli-building-mobile');
+          if (videoInitialized) {
+            console.log('Video already initialized, skipping');
+            return;
           }
-          function onScroll() { 
-            if (!duration) return; 
-            if (!rAF) {
-              rAF = requestAnimationFrame(onScrollTick);
-            }
-          }
-          function onResize(){ canvas.width=video.videoWidth||canvas.clientWidth||window.innerWidth; canvas.height=video.videoHeight||canvas.clientHeight||window.innerHeight; measure(); draw(); }
-          function onLoadedMeta() {
-            duration = video.duration || 0;
-            console.log('Video duration:', duration, 'seconds');
-            onResize();
-            
-            // Initial seek to start
-            doSeek(0);
-            
-            // Try to preload by playing and pausing
-            var playPromise = video.play();
-            if (playPromise !== undefined) {
-              playPromise.then(_ => {
-                console.log('Video preloaded, pausing...');
-                video.pause();
-              }).catch(e => {
-                console.log('Auto-play prevented, but scrubbing should still work');
+          videoInitialized = true;
+          
+          // Log video element status
+          const videoElement = document.getElementById('dup2-vd-video-' + sectionId);
+          console.log('Video element:', {
+            exists: !!videoElement,
+            readyState: videoElement?.readyState,
+            currentTime: videoElement?.currentTime,
+            duration: videoElement?.duration,
+            paused: videoElement?.paused
+          });
+          
+          // Initialize video scrub using centralized utility
+          if (window.FratelliGSAP && typeof window.FratelliGSAP.initVideoScrub === 'function') {
+            console.log('Initializing video scrub with FratelliGSAP');
+            try {
+              cleanupVideoScrub = window.FratelliGSAP.initVideoScrub({
+                wrapperId: 'dup2-vd-wrapper-' + sectionId,
+                pinId: 'dup2-vd-pin-' + sectionId,
+                canvasId: 'dup2-vd-canvas-' + sectionId,
+                videoId: 'dup2-vd-video-' + sectionId,
+                onReady: function(videoInfo) {
+                  console.log('Fratelli building mobile video scrub initialized for section:', sectionId, 'Video info:', videoInfo);
+                  initContentAnimations();
+                },
+                onUpdate: function(progress, time) {
+                  // Optional: Add any progress-based updates here
+                  console.log('Video progress:', { progress, time });
+                },
+                onError: function(error) {
+                  console.error('Error initializing video scrub:', error);
+                }
               });
+              console.log('Video scrub initialization started');
+            } catch (error) {
+              console.error('Error in initVideoScrub:', error);
+            }
+          } else {
+            console.warn('FratelliGSAP utilities not available', {
+              FratelliGSAP: !!window.FratelliGSAP,
+              initVideoScrub: window.FratelliGSAP ? typeof window.FratelliGSAP.initVideoScrub : 'no FratelliGSAP'
+            });
+          }
+        }
+
+        // Initialize content animations using centralized utility
+        function initContentAnimations() {
+          const contentSection = document.getElementById('dup2-video-content-' + sectionId);
+          if (!contentSection) {
+            console.error('Content section not found');
+            return;
+          }
+          
+          const jasonDup2 = contentSection.querySelector('#jason-dup2-' + sectionId) || contentSection.querySelector('.jason-dup2');
+          if (!jasonDup2) {
+            console.error('jason-dup2 element not found');
+            return;
+          }
+          
+          // Set initial margin (adjust these values as needed)
+          const hasImage = !!contentSection.querySelector('.full-image-dup2');
+          const initialMargin = hasImage ? '-15vh' : '-62vh';
+          try { 
+            contentSection.style.marginTop = initialMargin; 
+          } catch (e) {
+            console.error('Error setting margin:', e);
+          }
+          
+          // Animate content using centralized utility if available
+          if (window.FratelliGSAP && typeof window.FratelliGSAP.animateFadeIn === 'function') {
+            window.FratelliGSAP.animateFadeIn(jasonDup2);
+          } else {
+            // Fallback if utility not available
+            jasonDup2.style.opacity = '1';
+            jasonDup2.style.transform = 'translateY(0)';
+            jasonDup2.style.transition = 'opacity 0.8s ease-out, transform 0.8s ease-out';
+          }
+        }
+
+        // Initialize immediately if page content is already visible
+        if (document.getElementById('page-content')?.style.display !== 'none') {
+          initializeVideoScrub();
+        }
+        
+        // Also initialize when page content is shown
+        document.addEventListener('pageContentShown', initializeVideoScrub);
+
+        // Handle window resize
+        function handleResize() {
+          var newIsMobile = window.innerWidth <= 767;
+          if (newIsMobile !== isMobile) {
+            // If breakpoint is crossed, reload the section
+            if (window.Shopify && window.Shopify.designMode) {
+              window.location.reload();
             }
           }
-          video.addEventListener('loadedmetadata', onLoadedMeta);
-          video.addEventListener('seeked', onSeeked);
-          window.addEventListener('scroll', onScroll, { passive: true });
-          window.addEventListener('resize', onResize);
-          
-          if (video.readyState >= 1) onLoadedMeta();
-          else try { video.load(); } catch (e) {}
-  
-          // Initial measurements with retry
-          setTimeout(measure, 50);
-          setTimeout(function(){ if (!endY || endY === 0) measure(); }, 300);
-  
-          // Cleanup function for event listeners
-          function cleanup() {
-            try { video.removeEventListener('loadedmetadata', onLoadedMeta); } catch(e) {}
-            try { video.removeEventListener('loadeddata', onLoadedMeta); } catch(e) {}
-            try { video.removeEventListener('canplay', onLoadedMeta); } catch(e) {}
-            try { video.removeEventListener('seeked', onSeeked); } catch(e) {}
-            try { window.removeEventListener('scroll', onScroll); } catch(e) {}
-            try { window.removeEventListener('resize', onResize); } catch(e) {}
-            if (rAF) cancelAnimationFrame(rAF);
-          }
-  
-          // Shopify section events for theme editor
-          if (window.Shopify && window.Shopify.designMode) {
-            window.addEventListener('shopify:section:unload', function () { cleanup(); });
-            window.addEventListener('shopify:section:load', function () { setTimeout(measure, 50); });
-          }
-          
-          // Page lifecycle events
-          window.addEventListener('pagehide', cleanup);
-          window.addEventListener('beforeunload', cleanup);
-        })();
-  
-        /* Content GSAP (dup2 selectors) */
-        (function contentGSAPDup2(){
-          var contentSection = document.getElementById('dup2-video-content-' + sectionId); if(!contentSection) return;
-          var jasonDup2 = contentSection.querySelector('#jason-dup2-' + sectionId) || contentSection.querySelector('.jason-dup2');
-          var content1 = contentSection.classList.contains('content-1-dup2') ? contentSection : contentSection.querySelector('.content-1-dup2') || contentSection;
-          var hasImage = !!contentSection.querySelector('.full-image-dup2');
-          function loadScript(src){ return new Promise(function(resolve,reject){ if(document.querySelector('script[src="'+src+'"]')) return resolve(); var s=document.createElement('script'); s.src=src; s.onload=resolve; s.onerror=reject; document.head.appendChild(s); }); }
-          var GSAP_CDN = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js";
-          var SCROLLTRIGGER_CDN = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js";
-          function init(){ if(!window.gsap||!window.ScrollTrigger) return console.warn('GSAP/ScrollTrigger not available for content animation.'); gsap.registerPlugin(ScrollTrigger); var initialMargin = hasImage?'-15vh':'-62vh'; try{ content1.style.marginTop = initialMargin;}catch(e){} try{ gsap.set(jasonDup2, { y:40, opacity:0 }); }catch(e){}
-            try{ gsap.timeline({ scrollTrigger:{ trigger: content1, start: 'top 90%', end: '100% center', scrub: true } }); }catch(e){}
-            try{ gsap.to(jasonDup2, { y:0, opacity:1, duration:1, ease:'power1.inOut', scrollTrigger:{ trigger: content1, start:'top 90%', end:'100% center', scrub:2 } }); }catch(e){ console.warn('jasonDup2 animation error', e); }
-          }
-          if(window.gsap && window.ScrollTrigger){ init(); }else{ loadScript(GSAP_CDN).then(function(){ return loadScript(SCROLLTRIGGER_CDN); }).then(function(){ setTimeout(init,40); }).catch(function(err){ console.error('Failed to load GSAP for content animation', err); }); }
-        })();
+        }
+
+        // Add resize listener with debounce
+        var resizeTimer;
+        window.addEventListener('resize', function() {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(handleResize, 250);
+        });
+
+        // Cleanup on section unload
+        if (window.Shopify && window.Shopify.designMode) {
+          window.addEventListener('shopify:section:unload', function cleanupOnUnload() {
+            if (typeof cleanupVideoScrub === 'function') {
+              cleanupVideoScrub();
+            }
+            window.removeEventListener('resize', handleResize);
+            document.removeEventListener('pageContentShown', initializeVideoScrub);
+            window.removeEventListener('shopify:section:unload', cleanupOnUnload);
+          });
+        }
       })();
     </script>
   

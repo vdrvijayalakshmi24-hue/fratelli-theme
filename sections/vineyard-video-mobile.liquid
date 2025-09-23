@@ -196,56 +196,119 @@
       (function() {
         const sectionId = '{{ section.id }}';
         
-        // Initialize video scrub using centralized utility
-        if (window.FratelliGSAP && typeof window.FratelliGSAP.initVideoScrub === 'function') {
-          const cleanupVideoScrub = window.FratelliGSAP.initVideoScrub({
-            wrapperId: 'dup-vd-wrapper-' + sectionId,
-            pinId: 'dup-vd-pin-' + sectionId,
-            canvasId: 'dup-vd-canvas-' + sectionId,
-            videoId: 'dup-vd-video-' + sectionId,
-            onReady: function(videoInfo) {
-              console.log('Mobile video scrub initialized for section:', sectionId);
-              initContentAnimations();
-            },
-            onUpdate: function(progress, time) {
-              // Optional: Add any progress-based updates here
+        var videoInitialized = false;
+        var cleanupVideoScrub = null;
+        
+        function initializeVideoScrub() {
+          console.log('initializeVideoScrub called for vineyard-video-mobile');
+          if (videoInitialized) {
+            console.log('Video already initialized, skipping');
+            return;
+          }
+          videoInitialized = true;
+          
+          // Initialize video scrub using centralized utility
+          if (window.FratelliGSAP && typeof window.FratelliGSAP.initVideoScrub === 'function') {
+            console.log('Initializing video scrub with FratelliGSAP');
+            try {
+              cleanupVideoScrub = window.FratelliGSAP.initVideoScrub({
+                wrapperId: 'dup-vd-wrapper-' + sectionId,
+                pinId: 'dup-vd-pin-' + sectionId,
+                canvasId: 'dup-vd-canvas-' + sectionId,
+                videoId: 'dup-vd-video-' + sectionId,
+                onReady: function(videoInfo) {
+                  console.log('Vineyard mobile video scrub initialized for section:', sectionId, 'Video info:', videoInfo);
+                  initContentAnimations();
+                },
+                onUpdate: function(progress, time) {
+                  // Optional: Add any progress-based updates here
+                  console.log('Video progress:', { progress, time });
+                },
+                onError: function(error) {
+                  console.error('Error initializing video scrub:', error);
+                }
+              });
+              console.log('Video scrub initialization started');
+            } catch (error) {
+              console.error('Error in initVideoScrub:', error);
             }
-          });
-
-          // Cleanup on section unload
-          if (window.Shopify && window.Shopify.designMode) {
-            window.addEventListener('shopify:section:unload', function cleanupOnUnload() {
-              if (typeof cleanupVideoScrub === 'function') {
-                cleanupVideoScrub();
-              }
-              window.removeEventListener('shopify:section:unload', cleanupOnUnload);
+          } else {
+            console.warn('FratelliGSAP utilities not available', {
+              FratelliGSAP: !!window.FratelliGSAP,
+              initVideoScrub: window.FratelliGSAP ? typeof window.FratelliGSAP.initVideoScrub : 'no FratelliGSAP'
             });
           }
-        } else {
-          console.warn('FratelliGSAP utilities not available');
+        }
+
+        // Initialize immediately if page content is already visible
+        if (document.getElementById('page-content')?.style.display !== 'none') {
+          initializeVideoScrub();
+        }
+        
+        // Also initialize when page content is shown
+        document.addEventListener('pageContentShown', initializeVideoScrub);
+
+        // Handle window resize
+        function handleResize() {
+          var newIsMobile = window.innerWidth <= 767;
+          if (newIsMobile !== isMobile) {
+            // If breakpoint is crossed, reload the section
+            if (window.Shopify && window.Shopify.designMode) {
+              window.location.reload();
+            }
+          }
+        }
+
+        // Add resize listener with debounce
+        var resizeTimer;
+        window.addEventListener('resize', function() {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(handleResize, 250);
+        });
+
+        // Cleanup on section unload
+        if (window.Shopify && window.Shopify.designMode) {
+          window.addEventListener('shopify:section:unload', function cleanupOnUnload() {
+            if (typeof cleanupVideoScrub === 'function') {
+              cleanupVideoScrub();
+            }
+            window.removeEventListener('resize', handleResize);
+            document.removeEventListener('pageContentShown', initializeVideoScrub);
+            window.removeEventListener('shopify:section:unload', cleanupOnUnload);
+          });
         }
 
         // Initialize content animations using centralized utility
         function initContentAnimations() {
           const contentSection = document.getElementById('dup-video-content-' + sectionId);
-          if (!contentSection) return;
+          if (!contentSection) {
+            console.error('Content section not found');
+            return;
+          }
           
           const jasonDup = contentSection.querySelector('#jason-dup-' + sectionId) || contentSection.querySelector('.jason-dup');
-          const content1 = contentSection.classList.contains('content-1-dup') ? 
-            contentSection : contentSection.querySelector('.content-1-dup') || contentSection;
+          if (!jasonDup) {
+            console.error('jason-dup element not found');
+            return;
+          }
           
-          // Set initial margin
+          // Set initial margin (adjust these values as needed)
           const hasImage = !!contentSection.querySelector('.full-image-dup');
           const initialMargin = hasImage ? '-15vh' : '-62vh';
-          try { content1.style.marginTop = initialMargin; } catch (e) {}
+          try { 
+            contentSection.style.marginTop = initialMargin; 
+          } catch (e) {
+            console.error('Error setting margin:', e);
+          }
           
-          // Animate content using centralized utility
+          // Animate content using centralized utility if available
           if (window.FratelliGSAP && typeof window.FratelliGSAP.animateFadeIn === 'function') {
             window.FratelliGSAP.animateFadeIn(jasonDup);
           } else {
             // Fallback if utility not available
             jasonDup.style.opacity = '1';
             jasonDup.style.transform = 'translateY(0)';
+            jasonDup.style.transition = 'opacity 0.8s ease-out, transform 0.8s ease-out';
           }
         }
       })();

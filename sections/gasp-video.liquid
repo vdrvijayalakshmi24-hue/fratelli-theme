@@ -180,10 +180,10 @@
     id="first-vd-wrapper-{{ section.id }}"
     data-track-vh="250"
     >
-    <div class="first-vd-pin" id="first-vd-pin-{{ section.id }}">
-      <canvas id="first-vd-canvas-{{ section.id }}" class="first-vd-canvas" role="img" aria-label="Video scrub"></canvas>
+    <div class="first-vd-pin mobile-only" id="first-vd-pin-mobile-{{ section.id }}">
+      <canvas id="first-vd-canvas-mobile-{{ section.id }}" class="first-vd-canvas" role="img" aria-label="Video scrub"></canvas>
       <video
-        id="first-vd-video-{{ section.id }}"
+        id="first-vd-video-mobile-{{ section.id }}"
         class="first-vd-video-decoder"
         muted
         playsinline
@@ -195,7 +195,21 @@
         Your browser does not support the video tag.
       </video>
     </div>
-
+    <div class="first-vd-pin desktop-only" id="first-vd-pin-desktop-{{ section.id }}">
+      <canvas id="first-vd-canvas-desktop-{{ section.id }}" class="first-vd-canvas" role="img" aria-label="Video scrub"></canvas>
+      <video
+        id="first-vd-video-desktop-{{ section.id }}"
+        class="first-vd-video-decoder"
+        muted
+        playsinline
+        preload="auto"
+        webkit-playsinline
+        x-webkit-airplay="allow"
+      >
+        <source src="https://cdn.shopify.com/videos/c/o/v/aa8ea38fecb6431ebc55c842becc04eb.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+    </div>
     <div class="first-vd-spacer" aria-hidden="true"></div>
   </section>
 
@@ -221,35 +235,99 @@
 
   <script>
     (function() {
-      const sectionId = '{{ section.id }}';
+      var sectionId = '{{ section.id }}';
+      var isMobile = window.innerWidth <= 767; // Match your mobile breakpoint
+      var pinSuffix = isMobile ? 'mobile' : 'desktop';
+      var videoInitialized = false;
+      var cleanupVideoScrub = null;
       
-      // Initialize video scrub using centralized utility
-      if (window.FratelliGSAP && typeof window.FratelliGSAP.initVideoScrub === 'function') {
-        const cleanupVideoScrub = window.FratelliGSAP.initVideoScrub({
-          wrapperId: 'first-vd-wrapper-' + sectionId,
-          pinId: 'first-vd-pin-' + sectionId,
-          canvasId: 'first-vd-canvas-' + sectionId,
-          videoId: 'first-vd-video-' + sectionId,
-          onReady: function(videoInfo) {
-            console.log('Video scrub initialized for section:', sectionId);
-            initContentAnimations();
-          },
-          onUpdate: function(progress, time) {
-            // Optional: Add any progress-based updates here
-          }
+      function initializeVideoScrub() {
+        console.log('initializeVideoScrub called');
+        if (videoInitialized) {
+          console.log('Video already initialized, skipping');
+          return;
+        }
+        videoInitialized = true;
+        
+        // Log video element status
+        const videoElement = document.getElementById('first-vd-video-' + pinSuffix + '-' + sectionId);
+        console.log('Video element:', {
+          exists: !!videoElement,
+          readyState: videoElement?.readyState,
+          currentTime: videoElement?.currentTime,
+          duration: videoElement?.duration,
+          paused: videoElement?.paused
         });
-
-        // Cleanup on section unload
-        if (window.Shopify && window.Shopify.designMode) {
-          window.addEventListener('shopify:section:unload', function cleanupOnUnload() {
-            if (typeof cleanupVideoScrub === 'function') {
-              cleanupVideoScrub();
-            }
-            window.removeEventListener('shopify:section:unload', cleanupOnUnload);
+        
+        // Initialize video scrub using centralized utility
+        if (window.FratelliGSAP && typeof window.FratelliGSAP.initVideoScrub === 'function') {
+          console.log('Initializing video scrub with FratelliGSAP');
+          try {
+            cleanupVideoScrub = window.FratelliGSAP.initVideoScrub({
+              wrapperId: 'first-vd-wrapper-' + sectionId,
+              pinId: 'first-vd-pin-' + pinSuffix + '-' + sectionId,
+              canvasId: 'first-vd-canvas-' + pinSuffix + '-' + sectionId,
+              videoId: 'first-vd-video-' + pinSuffix + '-' + sectionId,
+              onReady: function(videoInfo) {
+                console.log('First video scrub initialized for section:', sectionId, 'on', pinSuffix, 'Video info:', videoInfo);
+                initContentAnimations();
+              },
+              onUpdate: function(progress, time) {
+                // Optional: Add any progress-based updates here
+                console.log('Video progress:', { progress, time });
+              },
+              onError: function(error) {
+                console.error('Error initializing video scrub:', error);
+              }
+            });
+            console.log('Video scrub initialization started');
+          } catch (error) {
+            console.error('Error in initVideoScrub:', error);
+          }
+        } else {
+          console.warn('FratelliGSAP utilities not available', {
+            FratelliGSAP: !!window.FratelliGSAP,
+            initVideoScrub: window.FratelliGSAP ? typeof window.FratelliGSAP.initVideoScrub : 'no FratelliGSAP'
           });
         }
-      } else {
-        console.warn('FratelliGSAP utilities not available');
+      }
+
+      // Initialize immediately if page content is already visible
+      if (document.getElementById('page-content')?.style.display !== 'none') {
+        initializeVideoScrub();
+      }
+      
+      // Also initialize when page content is shown
+      document.addEventListener('pageContentShown', initializeVideoScrub);
+
+      // Handle window resize
+      function handleResize() {
+        var newIsMobile = window.innerWidth <= 767;
+        if (newIsMobile !== isMobile) {
+          // If breakpoint is crossed, reload the section
+          if (window.Shopify && window.Shopify.designMode) {
+            window.location.reload();
+          }
+        }
+      }
+
+      // Add resize listener with debounce
+      var resizeTimer;
+      window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(handleResize, 250);
+      });
+
+      // Cleanup on section unload
+      if (window.Shopify && window.Shopify.designMode) {
+        window.addEventListener('shopify:section:unload', function cleanupOnUnload() {
+          if (typeof cleanupVideoScrub === 'function') {
+            cleanupVideoScrub();
+          }
+          window.removeEventListener('resize', handleResize);
+          document.removeEventListener('pageContentShown', initializeVideoScrub);
+          window.removeEventListener('shopify:section:unload', cleanupOnUnload);
+        });
       }
 
       // Initialize content animations using centralized utility

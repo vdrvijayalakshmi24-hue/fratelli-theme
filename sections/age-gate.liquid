@@ -149,7 +149,13 @@
       var root = $(rootSel);
       if (root) root.style.display = 'none';
       var pageContent = document.getElementById('page-content');
-      if (pageContent) pageContent.style.display = 'block';
+      if (pageContent) {
+        pageContent.style.display = 'block';
+        // Dispatch a custom event to notify that the page content is now visible
+        document.dispatchEvent(new CustomEvent('pageContentShown', {
+          detail: { sectionId: sectionId }
+        }));
+      }
     }
 
     function showAgeGate() {
