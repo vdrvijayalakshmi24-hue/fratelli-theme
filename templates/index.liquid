@@ -1,1 +1,38 @@
-{{ content_for_index }}
+{% comment %} {{ content_for_index }} {% endcomment %}
+{% section 'gasp-video' %}
+{% section 'gasp-video-2' %}
+
+{% comment %} Show different sections for mobile and desktop {% endcomment %}
+<div class="desktop-only">
+    {% section 'vineyard-video' %}
+</div>
+
+<div class="mobile-only">
+    {% section 'vineyard-video-mobile' %}
+</div>
+
+<div class="desktop-only">
+  {% section 'fratelli-building' %}
+</div>
+
+<div class="mobile-only">
+  {% section 'fratelli-building-mobile' %}
+</div>
+
+
+<style>
+  /* Hide mobile by default */
+  .mobile-only { display: none; }
+  
+  /* Show mobile on small screens */
+  @media (max-width: 767px) {
+    .mobile-only { display: block; }
+    .desktop-only { display: none; }
+  }
+  
+  /* Show desktop on larger screens */
+  @media (min-width: 768px) {
+    .mobile-only { display: none; }
+    .desktop-only { display: block; }
+  }
+</style>

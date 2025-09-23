@@ -1,0 +1,97 @@
+/* Custom Header Styles */
+
+/* Make header sticky and transparent on home page */
+.template-index .shopify-section--header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  transition: background-color 0.3s ease;
+}
+
+/* Force transparent background */
+.template-index .Header,
+.template-index .Header__Wrapper {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove any potential borders from child elements */
+.template-index .Header:before,
+.template-index .Header:after,
+.template-index .Header__Wrapper:before,
+.template-index .Header__Wrapper:after {
+  display: none !important;
+}
+
+/* Keep header transparent even when scrolled */
+.template-index .shopify-section--header.is-scrolled,
+.template-index .Header--transparent {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove any border from the search bar when it's open */
+.template-index .Search[aria-hidden="true"] + .Header--transparent {
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Ensure content doesn't jump under the fixed header */
+.template-index #MainContent {
+  padding-top: var(--header-height, 80px);
+}
+
+/* Header link colors for transparent header */
+.template-index .Header,
+.template-index .Header__Wrapper {
+  --header-heading-color: #FFFFF8;
+  --header-light-color: #FFFFF8;
+  background-color: transparent !important;
+}
+
+/* Navigation item colors */
+.template-index .Header .HorizontalList__Item > a,
+.template-index .Header .HorizontalList__Item .Heading,
+.template-index .Header .Header__Icon .Icon,
+.template-index .Header .Header__LogoLink,
+.template-index .Header .Header__SecondaryNav .Link--primary {
+  color: #FFFFF8 !important;
+  fill: #FFFFF8 !important;
+}
+
+/* Hover and active states */
+.template-index .Header .HorizontalList__Item > a:hover,
+.template-index .Header .Header__SecondaryNav .Link--primary:hover {
+  opacity: 0.8;
+  color: #FFFFF8 !important;
+}
+
+/* Adjust logo for transparent header */
+.template-index .Header__LogoLink {
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.template-index .Header__LogoImage {
+  max-height: 40px;
+  width: auto;
+  /* filter: brightness(0) invert(1); */
+}
+
+/* Mobile menu button color */
+.template-index .Header__Icon .Icon--nav {
+  fill: #FFFFF8 !important;
+}
+
+/* Ensure dropdown menus have the correct text color */
+.template-index .DropdownMenu .Link,
+.template-index .MegaMenu .Link {
+  color: #FFFFF8 !important;
+}

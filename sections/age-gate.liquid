@@ -1,0 +1,293 @@
+{% comment %}
+  Age Gate section (complete)
+  - Uses localStorage key: "agegateConfirmed_v1"
+  - Fallback assets (from assets/): Flow_5.png and GlassIamge.svg
+  - Save as: sections/age-gate.liquid
+{% endcomment %}
+
+<div id="agegate-root-{{ section.id }}" class="agegate-root">
+  <!-- AgeGate overlay -->
+  <section id="agegate-section-{{ section.id }}" class="agegate-container relative w-full h-screen overflow-hidden" role="dialog" aria-label="Age gate">
+    <!-- Background image -->
+    {% if section.settings.background_image != blank %}
+      <img
+        src="{{ section.settings.background_image | img_url: '2048x' }}"
+        alt="Background"
+        class="absolute inset-0 w-full h-full object-cover agegate-bg"
+        width="2048"
+        height="1152"
+        style="width:100%;height:100%;object-fit:cover;"
+        loading="eager"
+        decoding="async"
+      />
+    {% else %}
+      <!-- explicit fallback to your local asset Flow_5.png -->
+      <img
+        src="{{ 'Flow_5.png' | asset_url }}"
+        alt="Background"
+        class="absolute inset-0 w-full h-full object-cover agegate-bg"
+        width="2048"
+        height="1152"
+        style="width:100%;height:100%;object-fit:cover;"
+        loading="eager"
+        decoding="async"
+      />
+    {% endif %}
+
+    <!-- Glass overlay -->
+    <div class="absolute right-0 left-0 bottom-0 flex items-center justify-center pointer-events-none">
+      {% if section.settings.glass_image != blank %}
+        <img
+          id="agegate-glass-{{ section.id }}"
+          src="{{ section.settings.glass_image | img_url: '2048x' }}"
+          alt="Glass overlay"
+          class="w-full h-full object-cover agegate-glass"
+          width="2048"
+          height="1152"
+          style="width:100%;object-fit:cover;transform-origin:50% 50%;"
+          loading="lazy"
+          decoding="async"
+        />
+      {% else %}
+        <!-- explicit fallback to your local asset GlassIamge.svg (exact spelling) -->
+        <img
+          id="agegate-glass-{{ section.id }}"
+          src="{{ 'GlassImage.svg' | asset_url }}"
+          alt="Glass overlay"
+          class="w-full h-screen object-cover agegate-glass"
+          width="2048"
+          height="1152"
+          style="width:100%;object-fit:cover;transform-origin:50% 50%;"
+          loading="lazy"
+          decoding="async"
+        />
+      {% endif %}
+    </div>
+
+    <!-- Centered content -->
+    <div id="agegate-content-{{ section.id }}" class="flex-column absolute mt-30 inset-0 flex flex-col items-center justify-center text-center text-white px-6" style="gap:20px;">
+      <div class="agegate-question text-white" style="font-size:28px;max-width:60%;">
+        {{ section.settings.question_text }}
+      </div>
+
+      <div class="flex gap-6">
+        <button id="agegate-yes-{{ section.id }}" class="py-3 px-8 rounded border border-white bg-white text-black font-semibold">
+          {{ section.settings.yes_text }}
+        </button>
+
+        <button id="agegate-no-{{ section.id }}" class="py-3 px-8 rounded border border-white bg-transparent text-white font-semibold">
+          {{ section.settings.no_text }}
+        </button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<style>
+/* Minimal Tailwind-like utilities needed by this section */
+/* Layout helpers */
+.relative { position: relative; }
+.absolute { position: absolute; }
+.inset-0 { top:0; right:0; bottom:0; left:0; }
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.h-screen { height: 100vh; }
+.overflow-hidden { overflow: hidden; }
+.object-cover { object-fit: cover; }
+
+/* Flex & alignment */
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.text-center { text-align: center; }
+.flex-column { flex-direction: column; }
+
+/* Spacing */
+.px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.mt-30 { margin-top: 7.5rem; } /* matches inline style gap in original */
+.gap-6 { gap: 1.5rem; }
+
+/* Text */
+.text-white { color: #fff; }
+.text-black { color: #000; }
+.font-semibold { font-weight: 600; }
+
+/* Buttons / borders */
+.py-3 { padding-top: .75rem; padding-bottom: .75rem; }
+.px-8 { padding-left: 2rem; padding-right: 2rem; }
+.rounded { border-radius: .5rem; }
+.border { border-width: 1px; border-style: solid; }
+.border-white { border-color: #fff; }
+.bg-white { background: #fff; }
+.bg-transparent { background: transparent; }
+
+/* Utility used for fade animations via GSAP (GSAP uses inline styles) */
+.agegate-root { position: relative; z-index: 99999; }
+.agegate-container { z-index: 99999; }
+
+/* small responsive fix for question text */
+@media (max-width: 640px) {
+  .agegate-question { font-size: 20px !important; max-width: 90% !important; }
+  .mt-30 { margin-top: 4.5rem; }
+}
+</style>
+
+<!-- GSAP CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+<script>
+  (function() {
+    var sectionId = "{{ section.id }}";
+    var rootSel = '#agegate-root-' + sectionId;
+    var sectionSel = '#agegate-section-' + sectionId;
+    var contentSel = '#agegate-content-' + sectionId;
+    var glassSel = '#agegate-glass-' + sectionId;
+    var yesSel = '#agegate-yes-' + sectionId;
+    var noSel = '#agegate-no-' + sectionId;
+    var localKey = 'agegateConfirmed_v1';
+
+    function $(sel) { return document.querySelector(sel); }
+
+    function hideAgeGateInstant() {
+      var root = $(rootSel);
+      if (root) root.style.display = 'none';
+    }
+
+    function showAgeGate() {
+      var root = $(rootSel);
+      if (root) root.style.display = 'block';
+    }
+
+    function init() {
+      // Register ScrollTrigger if available
+      if (window.gsap && window.gsap.registerPlugin && window.ScrollTrigger) {
+        try { gsap.registerPlugin(ScrollTrigger); } catch (e) {}
+      }
+
+      // If previously confirmed, skip gate
+      var confirmed = localStorage.getItem(localKey) === 'true';
+      if (confirmed) {
+        hideAgeGateInstant();
+        return;
+      } else {
+        showAgeGate();
+      }
+
+      // Mirror React useEffect: set nav colors initially
+      try {
+        var navTitle = document.querySelector('.nav-title');
+        var navIcon = document.querySelector('.nav-icon');
+        if (navTitle) navTitle.style.color = "#8E1C21";
+        if (navIcon) navIcon.style.color = "#8E1C21";
+      } catch(e) { /* ignore */ }
+
+      var yesBtn = $(yesSel);
+      var noBtn = $(noSel);
+      var content = $(contentSel);
+      var glass = $(glassSel);
+      var root = $(sectionSel);
+
+      if (!yesBtn || !content || !glass || !root) return;
+
+      yesBtn.addEventListener('click', function() {
+        // Timeline: scale glass, fade out content, then mark confirmed and hide overlay
+        var tl = gsap.timeline({
+          onComplete: function() {
+            localStorage.setItem(localKey, 'true');
+
+            // fade out the whole agegate root quickly to remove from flow (mimic App behaviour)
+            gsap.to(root, {
+              autoAlpha: 0,
+              duration: 0.6,
+              onComplete: function() {
+                hideAgeGateInstant();
+              }
+            });
+          }
+        });
+
+        tl.to(glass, { scale: 3, duration: 1.2, ease: 'power3.out' }, 0);
+        tl.to(content, { autoAlpha: 0, duration: 0.6 }, 0);
+
+        // set nav styles to white / transparent (like React version)
+        var navTitle = document.querySelector('.nav-title');
+        var navIcon = document.querySelector('.nav-icon');
+        var navWrapper = document.querySelector('.nav-wrapper');
+        if (navTitle) navTitle.style.color = "white";
+        if (navIcon) navIcon.style.color = "white";
+        if (navWrapper) navWrapper.style.background = "transparent";
+      });
+
+      if (noBtn) {
+        noBtn.addEventListener('click', function() {
+          // shake the content to indicate negative response
+          gsap.fromTo(content, { x: -6 }, { x: 6, duration: 0.08, yoyo: true, repeat: 4 });
+        });
+      }
+    }
+
+    // Run init immediately if DOM is already parsed, otherwise wait for DOMContentLoaded.
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      // DOM already ready
+      init();
+    } else {
+      document.addEventListener('DOMContentLoaded', init);
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Age Gate",
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "background_image",
+      "label": "Background image"
+    },
+    {
+      "type": "image_picker",
+      "id": "glass_image",
+      "label": "Glass overlay image (SVG/PNG)"
+    },
+    {
+      "type": "text",
+      "id": "question_text",
+      "label": "Question text",
+      "default": "Are you of legal drinking age in your country?"
+    },
+    {
+      "type": "text",
+      "id": "yes_text",
+      "label": "Yes button text",
+      "default": "Yes"
+    },
+    {
+      "type": "text",
+      "id": "no_text",
+      "label": "No button text",
+      "default": "No"
+    },
+    {
+      "type": "text",
+      "id": "post_confirm_heading",
+      "label": "Post-confirm heading (shown after confirm)",
+      "default": "render content"
+    },
+    {
+      "type": "html",
+      "id": "post_confirm_html",
+      "label": "Post-confirm HTML",
+      "default": "<p>This content is shown after age confirmation.</p>"
+    }
+  ],
+  "blocks": [],
+  "presets": [
+    {
+      "name": "Age Gate",
+      "category": "Popups"
+    }
+  ]
+}
+{% endschema %}

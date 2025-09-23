@@ -27,8 +27,16 @@
 
     {{ content_for_header }}
   {% include 'tipo.booking.script' %}
-
+  
+    <!-- GSAP Animation Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script>
+      try { if (window.gsap && window.ScrollTrigger) { window.gsap.registerPlugin(window.ScrollTrigger); } } catch (e) {}
+    </script>
+    
     <link rel="stylesheet" href="{{ 'theme.css' | asset_url }}">
+    <link rel="stylesheet" href="{{ 'custom-header.css' | asset_url }}" type="text/css">
 
     <script>
       // This allows to expose several variables to the global scope, to be used in scripts
@@ -146,7 +154,7 @@
     {%- assign classes = classes | append: ' features--show-element-staggering' -%}
   {%- endif -%}
 
-  <body class="prestige--v4 {{ classes }} {% if template.directory %}template-{{ template.directory | handle }}{% endif %} template-{{ template.name | handle }}">
+  <body class="prestige--v4 {{ classes }} {% if template.directory %}template-{{ template.directory | handle }}{% endif %} template-{{ template.name | handle }} {% unless request.design_mode %}age-gate-loading{% endunless %}" data-age-gate-verified="{% if request.design_mode %}true{% else %}false{% endif %}">
     <a class="PageSkipLink u-visually-hidden" href="#main">{{ 'header.navigation.skip_to_content' | t }}</a>
     <span class="LoadingBar"></span>
     <div class="PageOverlay"></div>
@@ -165,14 +173,40 @@
     <div class="PageContainer">
       {% section 'announcement' %}
       {% section 'header' %}
-
-      <main id="main" role="main">
-        {{ content_for_layout }}
-      </main>
-
-      {% section 'footer' %}
+      <div id="age-gate-section" style="display: none;">
+      {% section 'age-gate' %}
+      </div>
+      
+      <div id="page-content" style="display: none;">
+        <main id="main" role="main">
+          {{ content_for_layout }}
+        </main>
+        {% section 'footer' %}
+      </div>
     </div>
-  
-  {% render 'bookthatapp-widgets' %}
-</body>
+    
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const ageVerified = localStorage.getItem('agegateConfirmed_v1') === 'true';
+        const body = document.body;
+        const pageContent = document.getElementById('page-content');
+        const ageGateSection = document.getElementById('age-gate-section');
+
+        
+        if (ageVerified || body.classList.contains('template-password')) {
+          // If age is verified or it's the password page, show content and hide age gate
+          if (pageContent) pageContent.style.display = 'block';
+          if (ageGateSection) ageGateSection.style.display = 'none';
+          body.classList.remove('age-gate-loading');
+          body.setAttribute('data-age-gate-verified', 'true');
+        } else {
+          // Show age gate and hide content
+          if (pageContent) pageContent.style.display = 'none';
+          if (ageGateSection) ageGateSection.style.display = 'block';
+          body.classList.add('age-gate-loading');
+        }
+      });
+    </script>
+    {% render 'bookthatapp-widgets' %}
+  </body>
 </html>

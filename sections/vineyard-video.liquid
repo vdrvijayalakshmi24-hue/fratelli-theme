@@ -1,0 +1,231 @@
+{% comment %}
+  sections/split-video-and-content.liquid
+  - Split video + content scrub section
+  - Left column: text only (no image)
+  - Right column: video scrub (canvas + hidden video)
+  - Background: #34461A
+  - Functionality unchanged
+{% endcomment %}
+
+<section id="split-video-section-{{ section.id }}" class="split-video-section" data-section-id="{{ section.id }}">
+    <style>
+      .split-vd-wrapper {
+        position: relative;
+        height: 200vh;
+        width: 100%;
+        overflow: visible;
+        box-sizing: border-box;
+        background: #34461A;
+      }
+  
+      .split-vd-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: grid;
+        grid-template-columns: 40% 60%;
+      }
+  
+      .split-vd-col { position: relative; }
+  
+      .split-vd-col-left { position: relative; }
+  
+      .split-vd-col-right { position: absolute; }
+  
+      .split-vd-pin {
+        position: absolute;
+        top: 0;
+        height: 100vh;
+        z-index: 0;
+        overflow: hidden;
+        background: #000;
+      }
+  
+      .split-vd-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+        background: #000;
+      }
+  
+      .split-vd-video-decoder {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+        width: 1px;
+        height: 1px;
+        left: -9999px;
+        top: -9999px;
+      }
+  
+      .split-vd-spacer { height: 1px; }
+  
+      /* ---------- Content ---------- */
+      .split-video-content {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        z-index: 10;
+        padding: 0 1.5rem;
+        color: #FFFFF8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+  
+      .split-jason {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        max-width: 28rem;
+        transform: translateY(40px);
+        opacity: 0;
+      }
+  
+      .split-jason h1 {
+        font-family: "Utile", sans-serif;
+        text-transform: uppercase;
+        color: #F4CF80;
+        font-size: 36px;
+        margin-bottom: 1rem;
+      }
+  
+      .split-jason p {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        color: #FFFFF8;
+        font-size: 18px;
+        line-height: 1.5;
+      }
+  
+      .split-explore-btn {
+        background: #fff;
+        color: #000;
+        border: none;
+        padding: 0.625rem 1.25rem;
+        border-radius: 20px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+    </style>
+  
+    <!-- ========== Scrub section ========== -->
+    <section class="split-vd-wrapper" id="split-vd-wrapper-{{ section.id }}" data-track-vh="250">
+      <div class="split-vd-inner" id="split-vd-inner-{{ section.id }}">
+        
+        <!-- Left column with text content -->
+        <div class="split-vd-col split-vd-col-left">
+          <div class="split-video-content split-content-1" id="split-video-content-{{ section.id }}">
+            <div class="split-jason" id="split-jason-{{ section.id }}">
+              <h1 id="split-jason-h1-{{ section.id }}">India’s finest Wine Makers</h1>
+              <p id="split-jason-p-{{ section.id }}">
+                From the heart of Akluj to tables across the world, Fratelli is more than wine, it’s a story of heritage, craftsmanship and seven brothers bound by a dream.
+              </p>
+              <button type="button" class="split-explore-btn" id="split-jason-btn-{{ section.id }}">Explore</button>
+            </div>
+          </div>
+        </div>
+  
+        <!-- Right column with scrubbed video -->
+        <div class="split-vd-col split-vd-col-right">
+          <div class="split-vd-pin" id="split-vd-pin-{{ section.id }}">
+            <canvas id="split-vd-canvas-{{ section.id }}" class="split-vd-canvas"></canvas>
+            <video
+              id="split-vd-video-{{ section.id }}"
+              class="split-vd-video-decoder"
+              muted
+              playsinline
+              preload="auto"
+            >
+              <source src="https://cdn.shopify.com/videos/c/o/v/4a2bc42d94f24db581fc77b74a92a55f.mp4" type="video/mp4" />
+            </video>
+          </div>
+        </div>
+      </div>
+      <div class="split-vd-spacer"></div>
+    </section>
+  
+    <script>
+      (function () {
+        var sectionId = '{{ section.id }}';
+  
+        /* Video scrub */
+        (function splitVideoScrub() {
+          var wrapper = document.getElementById('split-vd-wrapper-' + sectionId);
+          var pin = document.getElementById('split-vd-pin-' + sectionId);
+          var canvas = document.getElementById('split-vd-canvas-' + sectionId);
+          var video = document.getElementById('split-vd-video-' + sectionId);
+          if (!wrapper || !pin || !canvas || !video) return;
+  
+          var ctx = canvas.getContext('2d', { alpha: false });
+          var duration = 0, startY = 0, endY = 0, seeking = false, pending = null, rAF = 0;
+  
+          function clamp(v,a,b){return Math.min(b,Math.max(a,v));}
+          function setAbsoluteAt(y) {
+            var w = wrapper.clientWidth;
+            pin.style.position = 'absolute';
+            pin.style.top = y+'px';
+            {% comment %} pin.style.left = (w*0.4)+'px'; {% endcomment %}
+            {% comment %} pin.style.width = (w*0.6)+'px'; {% endcomment %}
+            pin.style.height = '100vh';
+          }
+          function setFixedTop() {
+            var rect = wrapper.getBoundingClientRect(), w = rect.width;
+            var left = rect.left + window.pageXOffset + w*0.4;
+            pin.style.position = 'fixed';
+            pin.style.top = '0'; pin.style.left = left+'px';
+            pin.style.width = (w*0.6)+'px'; pin.style.height = '100vh';
+          }
+          function updatePin() {
+            var rect=wrapper.getBoundingClientRect(), vh=window.innerHeight;
+            if(rect.top>0) return setAbsoluteAt(0);
+            if(rect.bottom<=vh) return setAbsoluteAt(wrapper.offsetHeight-vh);
+            setFixedTop();
+          }
+          function measure() {
+            var rect=wrapper.getBoundingClientRect(), pageY=window.pageYOffset;
+            startY=pageY+rect.top; endY=startY+wrapper.offsetHeight-window.innerHeight;
+            updatePin();
+          }
+          function draw(){try{ctx.drawImage(video,0,0,canvas.width,canvas.height);}catch(e){}}
+          function doSeek(t){seeking=true;try{video.currentTime=t;}catch(e){seeking=false;}}
+          function onSeeked(){draw();if(pending!=null){var n=pending;pending=null;doSeek(n);}else seeking=false;}
+          function onScrollTick(){rAF=0;var pageY=window.pageYOffset;var p=clamp((pageY-startY)/(endY-startY),0,1);var tRaw=p*duration;var STEP=1/30;var t=clamp(Math.round(tRaw/STEP)*STEP,0,duration-1e-6);if(!seeking)doSeek(t);else pending=t;updatePin();}
+          function onScroll(){if(!duration)return;if(!rAF)rAF=requestAnimationFrame(onScrollTick);}
+          function onResize(){canvas.width=video.videoWidth||600;canvas.height=video.videoHeight||400;measure();draw();}
+          function onLoadedMeta(){duration=video.duration||0;onResize();video.pause();doSeek(0);}
+          video.addEventListener('loadedmetadata',onLoadedMeta);
+          video.addEventListener('seeked',onSeeked);
+          window.addEventListener('scroll',onScroll,{passive:true});
+          window.addEventListener('resize',onResize);
+          if(video.readyState>=1)onLoadedMeta();else video.load();
+          setTimeout(measure,50);
+        })();
+  
+        /* GSAP animation */
+        (function splitContentGSAP() {
+          var content=document.getElementById('split-video-content-' + sectionId);
+          if(!content)return; var jason=content.querySelector('.split-jason');
+          function init(){
+            gsap.registerPlugin(ScrollTrigger);
+            gsap.set(jason,{y:40,opacity:0});
+            gsap.to(jason,{y:0,opacity:1,duration:1,ease:"power1.inOut", paddingTop: "100vh",
+              scrollTrigger:{trigger:content,start:"top 90%",end:"top center",scrub:2}});
+          }
+          if(window.gsap&&window.ScrollTrigger)init();
+        })();
+      })();
+    </script>
+  
+    {% schema %}
+    {
+      "name": "Split Video Canvas",
+      "settings": [],
+      "blocks": [],
+      "presets": [
+        { "name": "Split Video Canvas Scrub (No Image)" }
+      ]
+    }
+    {% endschema %}
+  </section>
+  

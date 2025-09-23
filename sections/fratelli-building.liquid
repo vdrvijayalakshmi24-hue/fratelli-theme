@@ -1,0 +1,282 @@
+{% comment %}
+  sections/swap-split-video-and-content.liquid
+  - Updated: 60% / 40% ratio
+  - Video stays on the left (60%)
+  - Content stays on the right (40%)
+  - Fixes: pin + canvas sizing now use the left column's dimensions, so scrubbing works and video stays left
+{% endcomment %}
+
+<section id="swap-split-video-section-{{ section.id }}" class="swap-split-video-section" data-section-id="{{ section.id }}">
+    <style>
+      .swap-vd-wrapper {
+        position: relative;
+        height: 200vh;
+        width: 100%;
+        overflow: visible;
+        box-sizing: border-box;
+        background: #34461A;
+      }
+
+      .swap-vd-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: grid;
+        grid-template-columns: 60% 40%;
+      }
+
+      .swap-vd-col { position: relative; }
+      .swap-vd-col-left { position: relative; }
+      .swap-vd-col-right { position: relative; }
+
+      .swap-vd-pin {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        z-index: 0;
+        overflow: hidden;
+        background: #000;
+        width: 100%;
+      }
+
+      .swap-vd-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+        background: #000;
+      }
+
+      .swap-vd-video-decoder {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+        width: 1px;
+        height: 1px;
+        left: -9999px;
+        top: -9999px;
+      }
+
+      .swap-vd-spacer { height: 1px; }
+
+      /* ---------- Content ---------- */
+      .swap-video-content {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        z-index: 10;
+        padding: 0 1.5rem;
+        color: #FFFFF8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .swap-jason {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        max-width: 28rem;
+        transform: translateY(40px);
+        opacity: 0;
+      }
+
+      .swap-jason h1 {
+        font-family: "Utile", sans-serif;
+        text-transform: uppercase;
+        color: #F4CF80;
+        font-size: 36px;
+        margin-bottom: 1rem;
+      }
+
+      .swap-jason p {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        color: #FFFFF8;
+        font-size: 18px;
+        line-height: 1.5;
+      }
+
+      .swap-explore-btn {
+        background: #fff;
+        color: #000;
+        border: none;
+        padding: 0.625rem 1.25rem;
+        border-radius: 20px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+    </style>
+
+    <!-- ========== Scrub section ========== -->
+    <section class="swap-vd-wrapper" id="swap-vd-wrapper-{{ section.id }}" data-track-vh="250">
+      <div class="swap-vd-inner" id="swap-vd-inner-{{ section.id }}">
+
+        <!-- Left column with video -->
+        <div class="swap-vd-col swap-vd-col-left">
+          <div class="swap-vd-pin" id="swap-vd-pin-{{ section.id }}">
+            <canvas id="swap-vd-canvas-{{ section.id }}" class="swap-vd-canvas"></canvas>
+            <video
+              id="swap-vd-video-{{ section.id }}"
+              class="swap-vd-video-decoder"
+              muted
+              playsinline
+              preload="auto"
+            >
+              <source src="https://cdn.shopify.com/videos/c/o/v/185767bed03f4aa4a4e6e593a05567d0.mp4" type="video/mp4" />
+            </video>
+          </div>
+        </div>
+
+        <!-- Right column with text content -->
+        <div class="swap-vd-col swap-vd-col-right">
+          <div class="swap-video-content swap-content-1" id="swap-video-content-{{ section.id }}">
+            <div class="swap-jason" id="swap-jason-{{ section.id }}">
+              <h1 id="swap-jason-h1-{{ section.id }}">India’s finest Wine Makers</h1>
+              <p id="swap-jason-p-{{ section.id }}">
+                From the heart of Akluj to tables across the world, Fratelli is more than wine, it’s a story of heritage, craftsmanship and seven brothers bound by a dream.
+              </p>
+              <button type="button" class="swap-explore-btn" id="swap-jason-btn-{{ section.id }}">Explore</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="swap-vd-spacer"></div>
+    </section>
+
+    <script>
+      (function () {
+        var sectionId = '{{ section.id }}';
+
+        /* Video scrub */
+        (function swapVideoScrub() {
+          var wrapper = document.getElementById('swap-vd-wrapper-' + sectionId);
+          var pin = document.getElementById('swap-vd-pin-' + sectionId);
+          var canvas = document.getElementById('swap-vd-canvas-' + sectionId);
+          var video = document.getElementById('swap-vd-video-' + sectionId);
+          var leftCol = wrapper.querySelector('.swap-vd-col-left');
+          if (!wrapper || !pin || !canvas || !video || !leftCol) return;
+
+          var ctx = canvas.getContext('2d', { alpha: false });
+          var duration = 0, startY = 0, endY = 0, seeking = false, pending = null, rAF = 0;
+
+          function clamp(v,a,b){return Math.min(b,Math.max(a,v));}
+
+          // When absolute (inside wrapper) we keep pin full-width of the left column (left:0)
+          function setAbsoluteAt(y) {
+            pin.style.position = 'absolute';
+            pin.style.top = y+'px';
+            pin.style.left = '0';
+            pin.style.height = '100vh';
+            pin.style.width = '100%';
+          }
+
+          // For fixed, compute the left column's page offset and width so the pin sits exactly over the left column
+          function setFixedTop() {
+            var wrapperRect = wrapper.getBoundingClientRect();
+            var leftRect = leftCol.getBoundingClientRect();
+            var pageX = window.pageXOffset || window.scrollX || 0;
+            var left = leftRect.left + pageX;
+            var width = leftRect.width;
+
+            pin.style.position = 'fixed';
+            pin.style.top = '0';
+            pin.style.left = left + 'px';
+            pin.style.width = width + 'px';
+            pin.style.height = '100vh';
+          }
+
+          function updatePin() {
+            var rect = wrapper.getBoundingClientRect(), vh = window.innerHeight;
+            if (rect.top > 0) return setAbsoluteAt(0);
+            if (rect.bottom <= vh) return setAbsoluteAt(wrapper.offsetHeight - vh);
+            setFixedTop();
+          }
+
+          function measure() {
+            var rect = wrapper.getBoundingClientRect(), pageY = window.pageYOffset || window.scrollY || 0;
+            startY = pageY + rect.top; endY = startY + wrapper.offsetHeight - window.innerHeight;
+            updatePin();
+          }
+
+          function draw() {
+            try {
+              // draw the video frame scaled to canvas element size
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            } catch (e) {}
+          }
+
+          function doSeek(t) { seeking = true; try { video.currentTime = t; } catch (e) { seeking = false; } }
+          function onSeeked() { draw(); if (pending != null) { var n = pending; pending = null; doSeek(n); } else seeking = false; }
+
+          function onScrollTick() {
+            rAF = 0;
+            var pageY = window.pageYOffset || window.scrollY || 0;
+            var p = clamp((pageY - startY) / (endY - startY), 0, 1);
+            var tRaw = p * duration;
+            var STEP = 1 / 30;
+            var t = clamp(Math.round(tRaw / STEP) * STEP, 0, duration - 1e-6);
+            if (!seeking) doSeek(t); else pending = t;
+            updatePin();
+          }
+
+          function onScroll() { if (!duration) return; if (!rAF) rAF = requestAnimationFrame(onScrollTick); }
+
+          function onResize() {
+            // set canvas pixel dimensions based on the video's intrinsic size but scaled to the pin width/height
+            var leftRect = leftCol.getBoundingClientRect();
+            var scaleW = leftRect.width;
+            // Use video's intrinsic aspect ratio to compute canvas height to avoid distortion
+            var vw = video.videoWidth || 16;
+            var vh = video.videoHeight || 9;
+            var aspect = vw / vh;
+            canvas.width = Math.max(1, vw);
+            canvas.height = Math.max(1, vh);
+            // CSS size (so drawImage scales correctly) -- the canvas element will be stretched via CSS width/height
+            canvas.style.width = scaleW + 'px';
+            canvas.style.height = window.innerHeight + 'px';
+            measure();
+            draw();
+          }
+
+          function onLoadedMeta() {
+            duration = video.duration || 0;
+            onResize();
+            video.pause();
+            doSeek(0);
+          }
+
+          video.addEventListener('loadedmetadata', onLoadedMeta);
+          video.addEventListener('seeked', onSeeked);
+          window.addEventListener('scroll', onScroll, { passive: true });
+          window.addEventListener('resize', onResize);
+          if (video.readyState >= 1) onLoadedMeta(); else video.load();
+          setTimeout(measure, 50);
+        })();
+
+        /* GSAP animation */
+        (function swapContentGSAP() {
+          var content = document.getElementById('swap-video-content-' + sectionId);
+          if (!content) return; var jason = content.querySelector('.swap-jason');
+          function init() {
+            gsap.registerPlugin(ScrollTrigger);
+            gsap.set(jason, { y: 40, opacity: 0 });
+            gsap.to(jason, { y: 0, opacity: 1, duration: 1, ease: "power1.inOut", paddingTop: "100vh",
+              scrollTrigger: { trigger: content, start: "top 90%", end: "top center", scrub: 2 } });
+          }
+          if (window.gsap && window.ScrollTrigger) init();
+        })();
+      })();
+    </script>
+
+    {% schema %}
+    {
+      "name": "Swap Split Video",
+      "settings": [],
+      "blocks": [],
+      "presets": [
+        { "name": "Swap Split Video Canvas Scrub (Video Left 60%, Content Right 40%)" }
+      ]
+    }
+    {% endschema %}
+  </section>

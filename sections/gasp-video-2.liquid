@@ -1,0 +1,439 @@
+{% comment %}
+  sections/first-video-and-content.liquid
+  - Canvas-based video scrub section (user's FirstVideo) + content (FullSceenVideoContent).
+  - Fixes and scopes GSAP animations for the "jason-second" content.
+  - Video src: {{ 'Video_2.mp4' | asset_url }}
+  - TRACK_VH = 250 (section height).
+  - STEP = 1/30 (30 fps).
+  - Schema max_blocks: 1.
+{% endcomment %}
+
+<section id="second-video-section-{{ section.id }}" class="second-video-section" data-section-id="{{ section.id }}">
+  <style>
+    /* ---------- Layout / scrub section ---------- */
+    .second-vd-wrapper {
+      position: relative;
+      height: 200vh; /* TRACK_VH */
+      width: 100%;
+      overflow: visible;
+      box-sizing: border-box;
+      background: #000;
+    }
+
+    .second-vd-pin {
+      position: absolute; /* JS toggles absolute/fixed for reliable pin */
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 100vh;
+      width: 100%;
+      z-index: 0;
+      overflow: hidden;
+      display: block;
+      background: #000;
+    }
+
+    .second-vd-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      background: #000;
+      image-rendering: auto;
+    }
+
+    .second-vd-video-decoder {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 1px;
+      height: 1px;
+      left: -9999px;
+      top: -9999px;
+    }
+
+    /* spacer to ensure page can scroll */
+    .second-vd-spacer {
+      height: 1px;
+    }
+
+    /* ---------- Content area (converted from FullSceenVideoContent / Tailwind) ---------- */
+    /* Container for the content — scoped by section id in DOM rather than CSS only */
+    .second-video-content {
+      position: relative;
+      z-index: 10;
+      box-sizing: border-box;
+      width: 100%;
+      overflow: hidden;
+      padding: 0 1.5rem;
+    }
+
+    .jason-second {
+      position: relative;
+      z-index: 10;
+      margin-top: 5rem; /* fallback vertical spacing if JS not applied */
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      overflow-x: hidden;
+      width: 100vw;
+      box-sizing: border-box;
+      color: #FFFFF8;
+      transform: translateY(40px); /* initial state */
+      opacity: 0;                  /* initial state */
+    }
+
+    @media (min-width: 1024px) {
+      .jason-second { flex-direction: row; padding-left: 10rem; }
+    }
+
+    .jason-second-content {
+      max-width: 56rem; /* max-w-3xl approx */
+      margin-bottom: 2.5rem;
+    }
+
+    .jason-second h1 {
+      margin-top: 6rem; /* lowered to avoid overlapping pinned video */
+      font-family: "Utile", sans-serif;
+      text-transform: uppercase;
+      margin-bottom: 2.5rem;
+      color: #F4CF80;
+      font-size: 44px;
+      letter-spacing: 0;
+    }
+
+    .jason-second h2 {
+      font-family: "Playfair Display", serif;
+      margin-bottom: 1.75rem;
+      padding-right: 5rem;
+      color: #FFFFF8;
+      font-size: 32px;
+      font-style: italic;
+      letter-spacing: -0.06em;
+    }
+
+    .jason-second p {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      padding-right: 7rem;
+      color: #FFFFF8;
+      font-size: 20px;
+      letter-spacing: -0.04em;
+    }
+
+    .explore-btn-second {
+      background: #fff;
+      color: #000;
+      border: none;
+      padding: 0.625rem 1.25rem;
+      border-radius: 20px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Background gradient variations */
+    .content-1-second {
+      position: relative;
+      display: block;
+      background: linear-gradient(360deg, #1A0903 62.4%, rgba(0, 0, 0, 0) 97.16%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 100%);
+      mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%);
+      box-sizing: border-box;
+      padding: 0 2rem;
+    }
+
+    /* small helper for the image if provided */
+    .full-image-second {
+      width: 100%;
+      height: 100vh;
+      object-fit: cover;
+      display: block;
+    }
+  </style>
+
+  <!-- ========== Scrub section (canvas + hidden video) ========== -->
+  <section
+    class="second-vd-wrapper"
+    id="second-vd-wrapper-{{ section.id }}"
+    data-track-vh="250"
+    >
+    <div class="second-vd-pin" id="second-vd-pin-{{ section.id }}">
+      <canvas id="second-vd-canvas-{{ section.id }}" class="second-vd-canvas" role="img" aria-label="Video scrub"></canvas>
+      <video
+        id="second-vd-video-{{ section.id }}"
+        class="second-vd-video-decoder"
+        muted
+        playsinline
+        preload="auto"
+        webkit-playsinline
+        x-webkit-airplay="allow"
+      >
+        <source src="https://cdn.shopify.com/videos/c/o/v/7ed7bbecce3442449c7d4edb655b31f9.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+    </div>
+
+    <div class="second-vd-spacer" aria-hidden="true"></div>
+  </section>
+
+  <!-- ========== Content area (converted from FullSceenVideoContent) ========== -->
+  <section class="second-video-content content-1-second" id="second-video-content-{{ section.id }}">
+    <div class="jason-second" id="jason-second-{{ section.id }}">
+      <div class="jason-second-content">
+        <h1 id="jason-second-h1-{{ section.id }}">Explore Range of Fratelli</h1>
+        <h2 id="jason-second-h2-{{ section.id }}">From Akluj's Soil</h2>
+        <p id="jason-second-p-{{ section.id }}">
+          Their hands don't just plant vines. they planted a vision. they dont dont follow europe. they carved india into every bottle.
+        </p>
+
+        <div style="margin-top: 1.25rem;">
+          <button type="button" class="explore-btn-second" id="jason-second-btn-{{ section.id }}">Explore</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    (function () {
+      var sectionId = '{{ section.id }}';
+
+      /* ------------------- Video scrub code (unchanged) ------------------- */
+      (function videoScrub() {
+        var wrapper = document.getElementById('second-vd-wrapper-' + sectionId);
+        var pin = document.getElementById('second-vd-pin-' + sectionId);
+        var canvas = document.getElementById('second-vd-canvas-' + sectionId);
+        var video = document.getElementById('second-vd-video-' + sectionId);
+        if (!wrapper || !pin || !canvas || !video) return;
+
+        var ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+
+        var duration = 0;
+        var startY = 0;
+        var endY = 0;
+        var seeking = false;
+        var pending = null;
+        var rAF = 0;
+
+        function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+
+        function setAbsoluteAt(y) {
+          pin.style.position = 'absolute';
+          pin.style.top = y + 'px';
+          pin.style.left = '0';
+          pin.style.right = '0';
+          pin.style.height = '100vh';
+          pin.style.width = '100%';
+        }
+
+        function setFixedTop() {
+          pin.style.position = 'fixed';
+          pin.style.top = '0';
+          pin.style.left = '0';
+          pin.style.right = '0';
+          pin.style.height = '100vh';
+          pin.style.width = '100%';
+        }
+
+        function updatePin() {
+          var rect = wrapper.getBoundingClientRect();
+          var vh = window.innerHeight || document.documentElement.clientHeight;
+          if (rect.top > 0) {
+            setAbsoluteAt(0);
+            return;
+          }
+          if (rect.bottom <= vh) {
+            setAbsoluteAt(wrapper.offsetHeight - vh);
+            return;
+          }
+          setFixedTop();
+        }
+
+        function measure() {
+          var rect = wrapper.getBoundingClientRect();
+          var pageY = window.pageYOffset || document.documentElement.scrollTop || 0;
+          startY = pageY + rect.top;
+          endY = startY + wrapper.offsetHeight - window.innerHeight;
+          updatePin();
+        }
+
+        function draw() {
+          try { ctx.drawImage(video, 0, 0, canvas.width, canvas.height); } catch (e) {}
+        }
+
+        function doSeek(t) {
+          seeking = true;
+          try {
+            if (typeof video.fastSeek === 'function') video.fastSeek(t);
+            else video.currentTime = t;
+          } catch (e) {
+            seeking = false;
+          }
+        }
+
+        function onSeeked() {
+          draw();
+          if (pending != null) {
+            var next = pending;
+            pending = null;
+            doSeek(next);
+          } else {
+            seeking = false;
+          }
+        }
+
+        function onScrollTick() {
+          rAF = 0;
+          var pageY = window.pageYOffset || document.documentElement.scrollTop || 0;
+          var prog = (pageY - startY) / Math.max(1, endY - startY);
+          var p = clamp(prog, 0, 1);
+          var tRaw = p * duration;
+          var STEP = 1 / 30;
+          var t = clamp(Math.round(tRaw / STEP) * STEP, 0, Math.max(0, duration - 1e-6));
+          if (!seeking) doSeek(t);
+          else pending = t;
+          updatePin();
+        }
+
+        function onScroll() { if (!duration) return; if (!rAF) rAF = requestAnimationFrame(onScrollTick); }
+
+        function onResize() {
+          canvas.width = video.videoWidth || canvas.clientWidth || window.innerWidth;
+          canvas.height = video.videoHeight || canvas.clientHeight || window.innerHeight;
+          measure();
+          draw();
+        }
+
+        function onLoadedMeta() {
+          duration = video.duration || 0;
+          onResize();
+          try {
+            var p = video.play();
+            if (p && typeof p.then === 'function') { p.then(function(){ try{video.pause();}catch(e){}; }).catch(function(){}); }
+          } catch (e) {}
+          doSeek(0);
+        }
+
+        video.addEventListener('loadedmetadata', onLoadedMeta);
+        video.addEventListener('seeked', onSeeked);
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onResize);
+        if (video.readyState >= 1) onLoadedMeta();
+        else try { video.load(); } catch (e) {}
+
+        setTimeout(measure, 50);
+        setTimeout(function(){ if (!endY || endY === 0) measure(); }, 300);
+
+        function cleanup() {
+          try { video.removeEventListener('loadedmetadata', onLoadedMeta); } catch(e) {}
+          try { video.removeEventListener('seeked', onSeeked); } catch(e) {}
+          try { window.removeEventListener('scroll', onScroll); } catch(e) {}
+          try { window.removeEventListener('resize', onResize); } catch(e) {}
+          if (rAF) cancelAnimationFrame(rAF);
+        }
+
+        if (window.Shopify && window.Shopify.designMode) {
+          window.addEventListener('shopify:section:unload', function () { cleanup(); });
+          window.addEventListener('shopify:section:load', function () { setTimeout(measure, 50); });
+        }
+        window.addEventListener('pagehide', cleanup);
+        window.addEventListener('beforeunload', cleanup);
+      })();
+
+      /* ------------------- Content GSAP animations (fix for jason-second) ------------------- */
+      (function contentGSAP() {
+        var contentSection = document.getElementById('second-video-content-' + sectionId);
+        if (!contentSection) return;
+
+        // find elements scoped to this section
+        var jasonSecond = contentSection.querySelector('#jason-second-' + sectionId) || contentSection.querySelector('.jason-second');
+        var content1 = contentSection.classList.contains('content-1-second') ? contentSection : contentSection.querySelector('.content-1-second') || contentSection;
+        var hasImage = !!contentSection.querySelector('.full-image-second');
+
+        // load gsap + ScrollTrigger if needed
+        function loadScript(src) {
+          return new Promise(function (resolve, reject) {
+            if (document.querySelector('script[src="' + src + '"]')) return resolve();
+            var s = document.createElement('script');
+            s.src = src;
+            s.onload = resolve;
+            s.onerror = reject;
+            document.head.appendChild(s);
+          });
+        }
+
+        var GSAP_CDN = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js";
+        var SCROLLTRIGGER_CDN = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js";
+
+        function init() {
+          if (!window.gsap || !window.ScrollTrigger) return console.warn('GSAP/ScrollTrigger not available for content animation.');
+          gsap.registerPlugin(ScrollTrigger);
+
+          // set initial marginTop similar to original React logic
+          var initialMargin = hasImage ? '-15vh' : '-62vh';
+          // apply as inline style so it doesn't conflict with other pages
+          try { content1.style.marginTop = initialMargin; } catch (e) {}
+
+          // make sure jasonSecond has starting state for animation
+          try {
+            gsap.set(jasonSecond, { y: 40, opacity: 0 });
+          } catch (e) {}
+
+          // timeline placeholder similar to original (kept in case you want to add timeline steps)
+          try {
+            gsap.timeline({
+              scrollTrigger: {
+                trigger: content1,
+                start: "top 90%",
+                end: "100% center",
+                scrub: true,
+                // markers: true // enable while debugging
+              }
+            });
+          } catch (e) {}
+
+          // animate jasonSecond into place while scrolling
+          try {
+            gsap.to(jasonSecond, {
+              y: 0,
+              opacity: 1,
+              duration: 1,
+              ease: "power1.inOut",
+              scrollTrigger: {
+                trigger: content1,
+                start: "top 90%",
+                end: "100% center",
+                scrub: 2,
+                // markers: true // enable for debug
+              }
+            });
+          } catch (e) {
+            console.warn('jasonSecond animation error', e);
+          }
+        }
+
+        // load scripts then init
+        if (window.gsap && window.ScrollTrigger) {
+          init();
+        } else {
+          loadScript(GSAP_CDN)
+            .then(function () { return loadScript(SCROLLTRIGGER_CDN); })
+            .then(function () { setTimeout(init, 40); })
+            .catch(function (err) { console.error('Failed to load GSAP for content animation', err); });
+        }
+      })();
+    })();
+  </script>
+
+  {% schema %}
+  {
+    "name": "Second Video Canvas Scrub",
+    "settings": [],
+    "blocks": [],
+    "max_blocks": 1,
+    "presets": [
+      {
+        "name": "Second Video Canvas Scrub"
+      }
+    ]
+  }
+  {% endschema %}
+</section>
