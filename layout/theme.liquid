@@ -152,12 +152,18 @@
               const pageY = window.pageYOffset || document.documentElement.scrollTop || 0;
               const prog = (pageY - startY) / Math.max(1, endY - startY);
               const p = clamp(prog, 0, 1);
-              const tRaw = p * duration;
-              const STEP = 1/30;
-              const t = clamp(Math.round(tRaw / STEP) * STEP, 0, Math.max(0, duration - 1e-6));
               
-              if (!seeking) doSeek(t);
-              else pending = t;
+              // Calculate time directly from progress for smoother playback
+              const t = p * duration;
+              
+              // Only update if the time has changed significantly (more than 0.02 seconds)
+              if (Math.abs(video.currentTime - t) > 0.02) {
+                if (!seeking) doSeek(t);
+                else pending = t;
+              }
+              
+              // Force redraw for smoother animation
+              draw();
               
               updatePin();
               onUpdate(p, t);
@@ -182,9 +188,19 @@
                 duration = 10; // Fallback duration in seconds
               }
               
+              // Optimize video for scrubbing
+              video.preload = 'auto';
+              video.playsInline = true;
+              video.muted = true;
+              video.defaultMuted = true;
+              video.setAttribute('muted', '');
+              
               onResize();
               video.pause();
               doSeek(0);
+              
+              // Force initial draw for immediate feedback
+              requestAnimationFrame(draw);
               
               // Call onReady with video info
               onReady({ duration, video, canvas });
