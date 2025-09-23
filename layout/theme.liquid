@@ -31,6 +31,7 @@
     <!-- GSAP Animation Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://unpkg.com/lenis@1.3.11/dist/lenis.min.js"></script>
     <script>
       // Initialize GSAP and register plugins
       if (window.gsap) {
@@ -218,6 +219,16 @@
       } else {
         console.warn('GSAP not available. Some animations may not work.');
       }
+      // Initialize Lenis
+      const lenis = new Lenis();
+
+      // Use requestAnimationFrame to continuously update the scroll
+      function raf(time) {
+        lenis.raf(time);
+        requestAnimationFrame(raf);
+      }
+
+      requestAnimationFrame(raf);
     </script>
     
     <link rel="stylesheet" href="{{ 'theme.css' | asset_url }}">
