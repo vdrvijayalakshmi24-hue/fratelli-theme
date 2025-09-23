@@ -1,7 +1,7 @@
 {% comment %}
   Age Gate section (complete)
   - Uses localStorage key: "agegateConfirmed_v1"
-  - Fallback assets (from assets/): Flow_5.png and GlassIamge.svg
+  - Fallback assets (from assets/): Age_Gate_Back.png and GlassIamge.svg
   - Save as: sections/age-gate.liquid
 {% endcomment %}
 
@@ -21,9 +21,9 @@
         decoding="async"
       />
     {% else %}
-      <!-- explicit fallback to your local asset Flow_5.png -->
+      <!-- explicit fallback to your local asset Age_Gate_Back.png -->
       <img
-        src="{{ 'Flow_5.png' | asset_url }}"
+        src="https://cdn.shopify.com/s/files/1/0491/6628/7016/files/Age_Gate_Back.jpg?v=1758620690"
         alt="Background"
         class="absolute inset-0 w-full h-full object-cover agegate-bg"
         width="2048"
@@ -52,7 +52,7 @@
         <!-- explicit fallback to your local asset GlassIamge.svg (exact spelling) -->
         <img
           id="agegate-glass-{{ section.id }}"
-          src="{{ 'GlassImage.svg' | asset_url }}"
+          src="https://cdn.shopify.com/s/files/1/0491/6628/7016/files/GlassImage.svg?v=1758619355"
           alt="Glass overlay"
           class="w-full h-screen object-cover agegate-glass"
           width="2048"
