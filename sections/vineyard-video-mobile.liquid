@@ -166,8 +166,6 @@
           preload="auto"
           webkit-playsinline
           x-webkit-airplay="allow"
-          disablePictureInPicture
-          loop
         >
           <source src="https://cdn.shopify.com/videos/c/o/v/49f4e96f0c8a43fa90adad4efeaa9e52.mp4" type="video/mp4" />
           Your browser does not support the video tag.
@@ -195,240 +193,61 @@
     </section>
   
     <script>
-      (function () {
-        var sectionId = '{{ section.id }}';
-  
-        /* ------------------- Video scrub code (renamed selectors) ------------------- */
-        (function videoScrubDup() {
-          var wrapper = document.getElementById('dup-vd-wrapper-' + sectionId);
-          var pin = document.getElementById('dup-vd-pin-' + sectionId);
-          var canvas = document.getElementById('dup-vd-canvas-' + sectionId);
-          var video = document.getElementById('dup-vd-video-' + sectionId);
-          if (!wrapper || !pin || !canvas || !video) return;
-  
-          var ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
-  
-          var duration = 0;
-          var startY = 0;
-          var endY = 0;
-          var seeking = false;
-          var pending = null;
-          var rAF = 0;
-  
-          function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
-  
-          function setAbsoluteAt(y) {
-            pin.style.position = 'absolute';
-            pin.style.top = y + 'px';
-            pin.style.left = '0';
-            pin.style.right = '0';
-            pin.style.height = '100vh';
-            pin.style.width = '100%';
-          }
-  
-          function setFixedTop() {
-            pin.style.position = 'fixed';
-            pin.style.top = '0';
-            pin.style.left = '0';
-            pin.style.right = '0';
-            pin.style.height = '100vh';
-            pin.style.width = '100%';
-          }
-  
-          function updatePin() {
-            var rect = wrapper.getBoundingClientRect();
-            var vh = window.innerHeight || document.documentElement.clientHeight;
-            if (rect.top > 0) {
-              setAbsoluteAt(0);
-              return;
+      (function() {
+        const sectionId = '{{ section.id }}';
+        
+        // Initialize video scrub using centralized utility
+        if (window.FratelliGSAP && typeof window.FratelliGSAP.initVideoScrub === 'function') {
+          const cleanupVideoScrub = window.FratelliGSAP.initVideoScrub({
+            wrapperId: 'dup-vd-wrapper-' + sectionId,
+            pinId: 'dup-vd-pin-' + sectionId,
+            canvasId: 'dup-vd-canvas-' + sectionId,
+            videoId: 'dup-vd-video-' + sectionId,
+            onReady: function(videoInfo) {
+              console.log('Mobile video scrub initialized for section:', sectionId);
+              initContentAnimations();
+            },
+            onUpdate: function(progress, time) {
+              // Optional: Add any progress-based updates here
             }
-            if (rect.bottom <= vh) {
-              setAbsoluteAt(wrapper.offsetHeight - vh);
-              return;
-            }
-            setFixedTop();
-          }
-  
-          function measure() {
-            var rect = wrapper.getBoundingClientRect();
-            var pageY = window.pageYOffset || document.documentElement.scrollTop || 0;
-            startY = pageY + rect.top;
-            endY = startY + wrapper.offsetHeight - window.innerHeight;
-            updatePin();
-          }
-  
-          function draw() {
-            try { ctx.drawImage(video, 0, 0, canvas.width, canvas.height); } catch (e) {}
-          }
-  
-          function doSeek(t) {
-            seeking = true;
-            try {
-              if (typeof video.fastSeek === 'function') video.fastSeek(t);
-              else video.currentTime = t;
-            } catch (e) {
-              seeking = false;
-            }
-          }
-  
-          function onSeeked() {
-            draw();
-            if (pending != null) {
-              var next = pending;
-              pending = null;
-              doSeek(next);
-            } else {
-              seeking = false;
-            }
-          }
-  
-          function onScrollTick() {
-            rAF = 0;
-            var pageY = window.pageYOffset || document.documentElement.scrollTop || 0;
-            var prog = (pageY - startY) / Math.max(1, endY - startY);
-            var p = clamp(prog, 0, 1);
-            var tRaw = p * duration;
-            var STEP = 1 / 30;
-            var t = clamp(Math.round(tRaw / STEP) * STEP, 0, Math.max(0, duration - 1e-6));
-            if (!seeking) doSeek(t);
-            else pending = t;
-            updatePin();
-          }
-  
-          function onScroll() { if (!duration) return; if (!rAF) rAF = requestAnimationFrame(onScrollTick); }
-  
-          function onResize() {
-            canvas.width = video.videoWidth || canvas.clientWidth || window.innerWidth;
-            canvas.height = video.videoHeight || canvas.clientHeight || window.innerHeight;
-            measure();
-            draw();
-          }
-  
-          function onLoadedMeta() {
-            duration = video.duration || 0;
-            onResize();
-            try {
-              var p = video.play();
-              if (p && typeof p.then === 'function') { 
-                p.then(function(){ 
-                  try{video.pause();}catch(e){}; 
-                }).catch(function(){}); 
-              }
-            } catch (e) {}
-            doSeek(0);
-          }
-  
-          video.addEventListener('loadedmetadata', onLoadedMeta);
-          video.addEventListener('seeked', onSeeked);
-          window.addEventListener('scroll', onScroll, { passive: true });
-          window.addEventListener('resize', onResize);
-  
-          if (video.readyState >= 1) onLoadedMeta();
-          else try { video.load(); } catch (e) {}
-  
-          setTimeout(measure, 50);
-          setTimeout(function(){ if (!endY || endY === 0) measure(); }, 300);
-  
-          function cleanup() {
-            try { video.removeEventListener('loadedmetadata', onLoadedMeta); } catch(e) {}
-            try { video.removeEventListener('loadeddata', onLoadedMeta); } catch(e) {}
-            try { video.removeEventListener('canplay', onLoadedMeta); } catch(e) {}
-            try { video.removeEventListener('seeked', onSeeked); } catch(e) {}
-            try { window.removeEventListener('scroll', onScroll); } catch(e) {}
-            try { window.removeEventListener('resize', onResize); } catch(e) {}
-            if (rAF) cancelAnimationFrame(rAF);
-          }
-  
+          });
+
+          // Cleanup on section unload
           if (window.Shopify && window.Shopify.designMode) {
-            window.addEventListener('shopify:section:unload', function () { cleanup(); });
-            window.addEventListener('shopify:section:load', function () { setTimeout(measure, 50); });
-          }
-          window.addEventListener('pagehide', cleanup);
-          window.addEventListener('beforeunload', cleanup);
-        })();
-  
-        /* ------------------- Content GSAP animations (renamed selectors) ------------------- */
-        (function contentGSAPDup() {
-          var contentSection = document.getElementById('dup-video-content-' + sectionId);
-          if (!contentSection) return;
-  
-          // find elements scoped to this section
-          var jasonDup = contentSection.querySelector('#jason-dup-' + sectionId) || contentSection.querySelector('.jason-dup');
-          var content1 = contentSection.classList.contains('content-1-dup') ? contentSection : contentSection.querySelector('.content-1-dup') || contentSection;
-          var hasImage = !!contentSection.querySelector('.full-image-dup');
-  
-          // load gsap + ScrollTrigger if needed
-          function loadScript(src) {
-            return new Promise(function (resolve, reject) {
-              if (document.querySelector('script[src="' + src + '"]')) return resolve();
-              var s = document.createElement('script');
-              s.src = src;
-              s.onload = resolve;
-              s.onerror = reject;
-              document.head.appendChild(s);
+            window.addEventListener('shopify:section:unload', function cleanupOnUnload() {
+              if (typeof cleanupVideoScrub === 'function') {
+                cleanupVideoScrub();
+              }
+              window.removeEventListener('shopify:section:unload', cleanupOnUnload);
             });
           }
-  
-          var GSAP_CDN = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js";
-          var SCROLLTRIGGER_CDN = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js";
-  
-          function init() {
-            if (!window.gsap || !window.ScrollTrigger) return console.warn('GSAP/ScrollTrigger not available for content animation.');
-            gsap.registerPlugin(ScrollTrigger);
-  
-            // set initial marginTop similar to original React logic
-            var initialMargin = hasImage ? '-15vh' : '-62vh';
-            // apply as inline style so it doesn't conflict with other pages
-            try { content1.style.marginTop = initialMargin; } catch (e) {}
-  
-            // make sure jasonDup has starting state for animation
-            try {
-              gsap.set(jasonDup, { y: 40, opacity: 0 });
-            } catch (e) {}
-  
-            // timeline placeholder similar to original (kept in case you want to add timeline steps)
-            try {
-              gsap.timeline({
-                scrollTrigger: {
-                  trigger: content1,
-                  start: "top 90%",
-                  end: "100% center",
-                  scrub: true,
-                  // markers: true // enable while debugging
-                }
-              });
-            } catch (e) {}
-  
-            // animate jasonDup into place while scrolling
-            try {
-              gsap.to(jasonDup, {
-                y: 0,
-                opacity: 1,
-                duration: 1,
-                ease: "power1.inOut",
-                scrollTrigger: {
-                  trigger: content1,
-                  start: "top 90%",
-                  end: "100% center",
-                  scrub: 2,
-                  // markers: true // enable for debug
-                }
-              });
-            } catch (e) {
-              console.warn('jasonDup animation error', e);
-            }
-          }
-  
-          // load scripts then init
-          if (window.gsap && window.ScrollTrigger) {
-            init();
+        } else {
+          console.warn('FratelliGSAP utilities not available');
+        }
+
+        // Initialize content animations using centralized utility
+        function initContentAnimations() {
+          const contentSection = document.getElementById('dup-video-content-' + sectionId);
+          if (!contentSection) return;
+          
+          const jasonDup = contentSection.querySelector('#jason-dup-' + sectionId) || contentSection.querySelector('.jason-dup');
+          const content1 = contentSection.classList.contains('content-1-dup') ? 
+            contentSection : contentSection.querySelector('.content-1-dup') || contentSection;
+          
+          // Set initial margin
+          const hasImage = !!contentSection.querySelector('.full-image-dup');
+          const initialMargin = hasImage ? '-15vh' : '-62vh';
+          try { content1.style.marginTop = initialMargin; } catch (e) {}
+          
+          // Animate content using centralized utility
+          if (window.FratelliGSAP && typeof window.FratelliGSAP.animateFadeIn === 'function') {
+            window.FratelliGSAP.animateFadeIn(jasonDup);
           } else {
-            loadScript(GSAP_CDN)
-              .then(function () { return loadScript(SCROLLTRIGGER_CDN); })
-              .then(function () { setTimeout(init, 40); })
-              .catch(function (err) { console.error('Failed to load GSAP for content animation', err); });
+            // Fallback if utility not available
+            jasonDup.style.opacity = '1';
+            jasonDup.style.transform = 'translateY(0)';
           }
-        })();
+        }
       })();
     </script>
   

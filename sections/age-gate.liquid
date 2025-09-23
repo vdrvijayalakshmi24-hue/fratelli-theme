@@ -132,10 +132,6 @@
 }
 </style>
 
-<!-- GSAP CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-
 <script>
   (function() {
     var sectionId = "{{ section.id }}";
@@ -162,11 +158,6 @@
     }
 
     function init() {
-      // Register ScrollTrigger if available
-      if (window.gsap && window.gsap.registerPlugin && window.ScrollTrigger) {
-        try { gsap.registerPlugin(ScrollTrigger); } catch (e) {}
-      }
-
       // If previously confirmed, skip gate
       var confirmed = localStorage.getItem(localKey) === 'true';
       if (confirmed) {
@@ -194,23 +185,29 @@
 
       yesBtn.addEventListener('click', function() {
         // Timeline: scale glass, fade out content, then mark confirmed and hide overlay
-        var tl = gsap.timeline({
-          onComplete: function() {
-            localStorage.setItem(localKey, 'true');
+        if (window.gsap) {
+          var tl = gsap.timeline({
+            onComplete: function() {
+              localStorage.setItem(localKey, 'true');
 
-            // fade out the whole agegate root quickly to remove from flow (mimic App behaviour)
-            gsap.to(root, {
-              autoAlpha: 0,
-              duration: 0.6,
-              onComplete: function() {
-                hideAgeGateInstant();
-              }
-            });
-          }
-        });
+              // fade out the whole agegate root quickly to remove from flow
+              gsap.to(root, {
+                autoAlpha: 0,
+                duration: 0.6,
+                onComplete: function() {
+                  hideAgeGateInstant();
+                }
+              });
+            }
+          });
 
-        tl.to(glass, { scale: 3, duration: 1.2, ease: 'power3.out' }, 0);
-        tl.to(content, { autoAlpha: 0, duration: 0.6 }, 0);
+          tl.to(glass, { scale: 3, duration: 1.2, ease: 'power3.out' }, 0);
+          tl.to(content, { autoAlpha: 0, duration: 0.6 }, 0);
+        } else {
+          // Fallback if GSAP is not available
+          localStorage.setItem(localKey, 'true');
+          hideAgeGateInstant();
+        }
 
         // set nav styles to white / transparent (like React version)
         var navTitle = document.querySelector('.nav-title');
@@ -224,17 +221,28 @@
       if (noBtn) {
         noBtn.addEventListener('click', function() {
           // shake the content to indicate negative response
-          gsap.fromTo(content, { x: -6 }, { x: 6, duration: 0.08, yoyo: true, repeat: 4 });
+          if (window.gsap) {
+            gsap.fromTo(content, { x: -6 }, { x: 6, duration: 0.08, yoyo: true, repeat: 4 });
+          }
         });
       }
     }
 
-    // Run init immediately if DOM is already parsed, otherwise wait for DOMContentLoaded.
+    // Wait for DOM and GSAP to be ready
+    function checkGSAPAndInit() {
+      if (window.gsap) {
+        init();
+      } else {
+        // If GSAP isn't loaded yet, wait a bit and try again
+        setTimeout(checkGSAPAndInit, 100);
+      }
+    }
+
+    // Run init when DOM is ready and GSAP is loaded
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
-      // DOM already ready
-      init();
+      checkGSAPAndInit();
     } else {
-      document.addEventListener('DOMContentLoaded', init);
+      document.addEventListener('DOMContentLoaded', checkGSAPAndInit);
     }
   })();
 </script>
