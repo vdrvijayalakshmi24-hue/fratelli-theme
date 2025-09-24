@@ -438,6 +438,35 @@ window.FratelliGSAP.initVideoScrub = function (options) {
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
       
+      // Function to safely play video with fallback for autoplay restrictions
+      async function safePlayVideo(video) {
+        try {
+          // Ensure video is muted for autoplay to work on mobile
+          video.muted = true;
+          video.playsInline = true;
+          video.setAttribute('playsinline', '');
+          video.setAttribute('webkit-playsinline', '');
+          
+          // Try to play the video
+          const playPromise = video.play();
+          
+          if (playPromise !== undefined) {
+            await playPromise.catch(async (e) => {
+              console.log('Autoplay prevented, showing fallback UI');
+              // Show play button or other UI to indicate video can be played
+              video.controls = true;
+              video.style.opacity = '1';
+            });
+          }
+          return true;
+        } catch (error) {
+          console.error('Error playing video:', error);
+          video.controls = true;
+          video.style.opacity = '1';
+          return false;
+        }
+      }
+      
       // Mobile-only Lenis initialization for smooth video scrubbing
       if (isMobile) {
         // Add touch event handlers for video elements
@@ -456,15 +485,16 @@ window.FratelliGSAP.initVideoScrub = function (options) {
               lastTouchTime = touchStartTime;
               velocity = 0;
               
-              // Force play on iOS due to autoplay restrictions
-              if (isIOS && video.paused) {
-                const playPromise = video.play();
-                if (playPromise !== undefined) {
-                  playPromise.catch(error => {
-                    // Autoplay was prevented, show play button
-                    console.log('Autoplay prevented:', error);
-                  });
-                }
+              // Set video attributes for mobile
+              video.muted = true;
+              video.playsInline = true;
+              video.setAttribute('playsinline', '');
+              video.setAttribute('webkit-playsinline', '');
+              video.setAttribute('muted', 'muted');
+              
+              // Try to play the video on first touch
+              if (video.paused) {
+                safePlayVideo(video);
               }
             }, { passive: true });
             
@@ -608,20 +638,59 @@ window.FratelliGSAP.initVideoScrub = function (options) {
         // Add touch event listeners to video elements for better mobile handling
         document.querySelectorAll('video').forEach(video => {
           // Ensure video plays inline on iOS
+          video.muted = true;
+          video.playsInline = true;
           video.setAttribute('playsinline', '');
           video.setAttribute('webkit-playsinline', '');
+          video.setAttribute('muted', 'muted');
+          video.preload = 'auto';
           
-          // Force play on tap (iOS requires user interaction)
-          video.addEventListener('touchend', () => {
+          // Add tap-to-play functionality
+          const playOverlay = document.createElement('div');
+          playOverlay.style.position = 'absolute';
+          playOverlay.style.top = '0';
+          playOverlay.style.left = '0';
+          playOverlay.style.width = '100%';
+          playOverlay.style.height = '100%';
+          playOverlay.style.display = 'flex';
+          playOverlay.style.alignItems = 'center';
+          playOverlay.style.justifyContent = 'center';
+          playOverlay.style.background = 'rgba(0,0,0,0.3)';
+          playOverlay.style.cursor = 'pointer';
+          playOverlay.style.zIndex = '10';
+          
+          const playIcon = document.createElement('div');
+          playIcon.innerHTML = '▶️';
+          playIcon.style.fontSize = '48px';
+          playOverlay.appendChild(playIcon);
+          
+          // Only show play overlay if video is paused
+          if (video.paused) {
+            video.parentNode.style.position = 'relative';
+            video.parentNode.insertBefore(playOverlay, video.nextSibling);
+          }
+          
+          // Handle play/pause on tap
+          const togglePlay = async (e) => {
+            e.stopPropagation();
             if (video.paused) {
-              const playPromise = video.play();
-              if (playPromise !== undefined) {
-                playPromise.catch(error => {
-                  console.log('Video play prevented:', error);
-                });
+              const played = await safePlayVideo(video);
+              if (played) {
+                playOverlay.style.display = 'none';
               }
+            } else {
+              video.pause();
+              playOverlay.style.display = 'flex';
             }
-          }, { passive: true });
+          };
+          
+          playOverlay.addEventListener('click', togglePlay);
+          playOverlay.addEventListener('touchend', togglePlay);
+          
+          // Update play overlay when video ends
+          video.addEventListener('ended', () => {
+            playOverlay.style.display = 'flex';
+          });
         });
       }
 
