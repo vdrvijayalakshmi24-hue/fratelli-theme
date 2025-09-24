@@ -10,12 +10,13 @@
     <title>
       {{ page_title }}{% if current_tags %}{% assign meta_tags = current_tags | join: ', ' %} &ndash; {{ 'general.meta.tags' | t: tags: meta_tags }}{% endif %}{% if current_page != 1 %} &ndash; {{ 'general.meta.page' | t: page: current_page }}{% endif %}{% unless page_title contains shop.name %} &ndash; {{ shop.name }}{% endunless %}
     </title>
-        <style>
-          html.lenis { height: auto; }
-          .lenis.lenis-smooth { scroll-behavior: auto; }
-          .lenis.lenis-stopped { overflow: hidden; }
-          [data-lenis-prevent] { overscroll-behavior: contain; }
-        </style>
+    <style>
+      html.lenis { height: auto; }
+      .lenis.lenis-smooth { scroll-behavior: auto; }
+      .lenis.lenis-stopped { overflow: hidden; }
+      [data-lenis-prevent] { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+      body { touch-action: pan-y pinch-zoom; }
+    </style>
     {%- if page_description -%}
       <meta name="description" content="{{ page_description | escape }}">
     {%- endif -%}
@@ -51,70 +52,130 @@
     </script>
 
     
+<!-- Lenis (CDN) -->
+<script src="https://cdn.jsdelivr.net/gh/studio-freight/lenis@latest/bundled/lenis.min.js"></script>
+
 <script>
-  (function () {
-    // Defensive: don't init in the Shopify editor / content editor (optional)
-    var isEditor = typeof Shopify !== 'undefined' && Shopify.designMode;
-    if (isEditor) return;
+(function () {
+  // === DEVICE DETECTION & USER PREFERENCE SAFEGUARDS ===
+  var isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints && navigator.msMaxTouchPoints > 0);
+  var prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    // Init Lenis with a "heavy/inertial" feel like large-brand landing pages
-    // Tweak these values to taste: duration (seconds), wheelMultiplier (responsiveness),
-    // smoothTouch (touch smoothing), normalizeWheel (consistent on different devices)
-    var lenis = new Lenis({
-      // global smoothing on/off
-      smooth: true,
+  // If you want to *force* native scroll on small screens, set this to false.
+  // Useful if smoothing causes jank on very low-end devices.
+  var enableMobileSmoothing = true;
 
-      // how long the easing lasts (sec). Larger => more inertia / floaty feel.
-      duration: 1.2,
+  // === TUNED CONFIG (different for desktop vs mobile) ===
+  var desktopConfig = {
+    smooth: true,
+    duration: 1.2,                      // longer inertia -> cinematic feel
+    easing: function (t) { return 1 - Math.pow(1 - t, 3); }, // easeOutCubic-like
+    wheelMultiplier: 0.7,               // lower = heavier feel
+    normalizeWheel: true,
+    smoothTouch: true,                  // also smooth touch on devices
+    direction: 'vertical',
+    gestureOrientation: 'vertical',
+    infinite: false
+  };
 
-      // easing function (you can keep this or use a built-in curve)
-      easing: function (t) {
-        // gentle easeOutCubic — good cinematic feel
-        return 1 - Math.pow(1 - t, 3);
-      },
+  var mobileConfig = {
+    smooth: enableMobileSmoothing && !prefersReduced, // fallback to native if pref reduced or toggle off
+    duration: 0.85,                     // shorter duration on phones so it feels responsive
+    easing: function (t) { return 1 - Math.pow(1 - t, 3); },
+    wheelMultiplier: 0.9,               // mostly affects wheel/trackpad; phones use touch
+    normalizeWheel: true,
+    smoothTouch: true,                  // keep touch smoothing enabled for consistent feel
+    direction: 'vertical',
+    gestureOrientation: 'vertical',
+    infinite: false
+  };
 
-      // mouse wheel multiplier - lower = heavier feel, higher = snappier
-      wheelMultiplier: 3.5,
+  var config = isTouch ? mobileConfig : desktopConfig;
 
-      // normalize wheel events across devices (recommended for consistent feel)
-      normalizeWheel: true,
+  // If user prefers reduced motion, don't smooth at all
+  if (prefersReduced) {
+    config.smooth = false;
+    config.smoothTouch = false;
+  }
 
-      // touch smoothing — set true if you want smoothing on mobile touch as well
-      smoothTouch: true,
+  // Defensive: do not init Lenis inside theme editors (Shopify editor) — optional
+  var inShopifyEditor = (typeof Shopify !== 'undefined' && Shopify.designMode);
+  if (inShopifyEditor) {
+    // still load nothing — ensure editor uses native scroll
+    window.__lenis = null;
+    return;
+  }
 
-      // orientation & gesture config (vertical is typical)
-      direction: 'vertical',
-      gestureOrientation: 'vertical',
+  // Initialize Lenis
+  var lenis = new Lenis(config);
+  window.__lenis = lenis; // expose for debugging / toggles from console
 
-      // prevents infinite scroll wrap behavior
-      infinite: false
+  // === RAF LOOP (required) ===
+  function raf(time) {
+    lenis.raf(time);
+    requestAnimationFrame(raf);
+  }
+  requestAnimationFrame(raf);
+
+  // === GSAP / ScrollTrigger INTEGRATION (if present) ===
+  if (window.gsap && window.ScrollTrigger) {
+    // Update ScrollTrigger when Lenis emits scroll events
+    lenis.on('scroll', function () {
+      try { ScrollTrigger.update(); } catch (e) {}
     });
 
-    // Hook Lenis into GSAP ScrollTrigger so ScrollTrigger reads the smoothed position
-    if (window.gsap && window.ScrollTrigger) {
-      // Ensure ScrollTrigger is registered already in your theme
-      lenis.on('scroll', function (e) {
-        // Update ScrollTrigger whenever Lenis emits a scroll event
-        ScrollTrigger.update();
-      });
+    // Also keep ScrollTrigger in sync on RAF for perfect alignment
+    try {
+      gsap.ticker.add(ScrollTrigger.update);
+    } catch (e) {}
 
-      // Also update ScrollTrigger from RAF to keep perfect sync with Lenis RAF loop
-      gsap.ticker.add(function () {
-        ScrollTrigger.update();
-      });
+    // Refresh to ensure markers & geometry compute correctly
+    ScrollTrigger.refresh();
+  }
+
+  // === OPTIONAL HELPERS / RECOMMENDATIONS ===
+  // 1) Containers that should NOT be smoothed (maps, native scroll areas, modals)
+  //    add attribute: data-lenis-prevent
+  //
+  // 2) If you need to temporarily disable smoothing (e.g. full-screen modal),
+  //    call: window.__lenis && window.__lenis.stop();  // or .destroy() to teardown
+  //    and to resume: window.__lenis && window.__lenis.start();
+  //    (Note: some Lenis builds expose start/stop; if not available, use destroy() then re-init.)
+  //
+  // 3) If you observe jank on very-low-end devices, set enableMobileSmoothing = false above
+  //    so mobile devices use native scrolling.
+  //
+  // 4) Input fields: if you notice caret/scroll issues inside input/textarea while smoothing,
+  //    add the attribute data-lenis-prevent to the input container or disable smoothing while focused.
+
+  // Expose a tiny API to toggle smoothing at runtime
+  window.__lenisToggle = function (on) {
+    if (!window.__lenis) return;
+    try {
+      if (on === false) {
+        if (typeof window.__lenis.stop === 'function') window.__lenis.stop();
+        else if (typeof window.__lenis.destroy === 'function') window.__lenis.destroy();
+      } else {
+        // Simple re-init helper: if destroyed, create a new instance — keep it minimal
+        // Note: re-init logic omitted for brevity; better to call location.reload() if needed.
+        console.warn('To re-enable Lenis after destroy you will need to re-init or reload page.');
+      }
+    } catch (e) { console.warn(e); }
+  };
+
+  // Small runtime tweak: if the mobile device has very low memory, fallback to native scroll.
+  // (This is conservative — you can remove this if you prefer to always attempt smoothing.)
+  try {
+    if (navigator.deviceMemory && navigator.deviceMemory <= 1) {
+      // disable smoothing on very low memory devices
+      if (lenis && typeof lenis.destroy === 'function') lenis.destroy();
+      window.__lenis = null;
     }
+  } catch (e) {}
 
-    // RAF loop for Lenis (required)
-    function raf(time) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
-    }
-    requestAnimationFrame(raf);
-
-    // Optional global helper to allow toggling Lenis (useful for overlays/modals)
-    window.__lenis = lenis;
-  })();
+})();
 </script>
+
     
     <link rel="stylesheet" href="{{ 'theme.css' | asset_url }}">
     <link rel="stylesheet" href="{{ 'custom-header.css' | asset_url }}" type="text/css">
