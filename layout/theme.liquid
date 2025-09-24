@@ -42,7 +42,7 @@
           window.FratelliGSAP = window.FratelliGSAP || {};
           
           // Common GSAP animations
-          window.FratelliGSAP.animateFadeIn = function(element, delay = 0, y = 40, duration = 1) {
+          window.FratelliGSAP.animateFadeIn = function(element, delay = 0, y = 40, duration = 0) {
             if (!element) return null;
             
             gsap.set(element, { y: y, opacity: 0 });

@@ -13,11 +13,17 @@
     /* ---------- Layout / scrub section ---------- */
     .first-vd-wrapper {
       position: relative;
-      height: 200vh; /* TRACK_VH */
+      height: 150vh; /* TRACK_VH */
       width: 100%;
       overflow: visible;
       box-sizing: border-box;
       background: #000;
+    }
+
+    @media (min-width: 1024px) {
+      .first-vd-wrapper {
+        height: 200vh !important;
+      }
     }
 
     .first-vd-pin {
