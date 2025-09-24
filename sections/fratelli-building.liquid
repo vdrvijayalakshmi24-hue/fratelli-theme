@@ -10,7 +10,7 @@
     <style>
       .swap-vd-wrapper {
         position: relative;
-        height: 200vh;
+        height: 400vh;
         width: 100%;
         overflow: visible;
         box-sizing: border-box;
@@ -214,7 +214,7 @@
             var pageY = window.pageYOffset || window.scrollY || 0;
             var p = clamp((pageY - startY) / (endY - startY), 0, 1);
             var tRaw = p * duration;
-            var STEP = 1 / 30;
+            var STEP = 1 / 60;
             var t = clamp(Math.round(tRaw / STEP) * STEP, 0, duration - 1e-6);
             if (!seeking) doSeek(t); else pending = t;
             updatePin();
@@ -261,7 +261,7 @@
           function init() {
             gsap.registerPlugin(ScrollTrigger);
             gsap.set(jason, { y: 40, opacity: 0 });
-            gsap.to(jason, { y: 0, opacity: 1, duration: 1, ease: "power1.inOut", paddingTop: "100vh",
+            gsap.to(jason, { y: 0, opacity: 1, duration: 1, ease: "power1.inOut", paddingTop: "300vh",
               scrollTrigger: { trigger: content, start: "top 90%", end: "top center", scrub: 2 } });
           }
           if (window.gsap && window.ScrollTrigger) init();

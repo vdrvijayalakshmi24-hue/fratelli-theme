@@ -11,7 +11,7 @@
     <style>
       .split-vd-wrapper {
         position: relative;
-        height: 200vh;
+        height: 400vh;
         width: 100%;
         overflow: visible;
         box-sizing: border-box;
@@ -190,7 +190,7 @@
           function draw(){try{ctx.drawImage(video,0,0,canvas.width,canvas.height);}catch(e){}}
           function doSeek(t){seeking=true;try{video.currentTime=t;}catch(e){seeking=false;}}
           function onSeeked(){draw();if(pending!=null){var n=pending;pending=null;doSeek(n);}else seeking=false;}
-          function onScrollTick(){rAF=0;var pageY=window.pageYOffset;var p=clamp((pageY-startY)/(endY-startY),0,1);var tRaw=p*duration;var STEP=1/30;var t=clamp(Math.round(tRaw/STEP)*STEP,0,duration-1e-6);if(!seeking)doSeek(t);else pending=t;updatePin();}
+          function onScrollTick(){rAF=0;var pageY=window.pageYOffset;var p=clamp((pageY-startY)/(endY-startY),0,1);var tRaw=p*duration;var STEP=1/60;var t=clamp(Math.round(tRaw/STEP)*STEP,0,duration-1e-6);if(!seeking)doSeek(t);else pending=t;updatePin();}
           function onScroll(){if(!duration)return;if(!rAF)rAF=requestAnimationFrame(onScrollTick);}
           function onResize(){canvas.width=video.videoWidth||600;canvas.height=video.videoHeight||400;measure();draw();}
           function onLoadedMeta(){duration=video.duration||0;onResize();video.pause();doSeek(0);}
@@ -209,7 +209,7 @@
           function init(){
             gsap.registerPlugin(ScrollTrigger);
             gsap.set(jason,{y:40,opacity:0});
-            gsap.to(jason,{y:0,opacity:1,duration:1,ease:"power1.inOut", paddingTop: "100vh",
+            gsap.to(jason,{y:0,opacity:1,duration:1,ease:"power1.inOut", paddingTop: "300vh",
               scrollTrigger:{trigger:content,start:"top 90%",end:"top center",scrub:2}});
           }
           if(window.gsap&&window.ScrollTrigger)init();
