@@ -7,11 +7,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, height=device-height, minimum-scale=1.0, maximum-scale=1.0">
     <meta name="theme-color" content="{{ settings.accent_color }}">
     <meta name="facebook-domain-verification" content="f7cq4hq8kdks12wuzcbj23u9wkagan" />
-
     <title>
       {{ page_title }}{% if current_tags %}{% assign meta_tags = current_tags | join: ', ' %} &ndash; {{ 'general.meta.tags' | t: tags: meta_tags }}{% endif %}{% if current_page != 1 %} &ndash; {{ 'general.meta.page' | t: page: current_page }}{% endif %}{% unless page_title contains shop.name %} &ndash; {{ shop.name }}{% endunless %}
     </title>
-
+        <style>
+          html.lenis { height: auto; }
+          .lenis.lenis-smooth { scroll-behavior: auto; }
+          .lenis.lenis-stopped { overflow: hidden; }
+          [data-lenis-prevent] { overscroll-behavior: contain; }
+        </style>
     {%- if page_description -%}
       <meta name="description" content="{{ page_description | escape }}">
     {%- endif -%}
@@ -38,588 +42,79 @@
         try {
           gsap.registerPlugin(ScrollTrigger);
           
-          // Create global GSAP utilities if they don't exist
-          window.FratelliGSAP = window.FratelliGSAP || {};
-          
-          // Common GSAP animations
-          window.FratelliGSAP.animateFadeIn = function(element, delay = 0, y = 40, duration = 0) {
-            if (!element) return null;
-            
-            gsap.set(element, { y: y, opacity: 0 });
-            return gsap.to(element, {
-              y: 0,
-              opacity: 1,
-              duration: duration,
-              delay: delay,
-              ease: "power1.inOut",
-              scrollTrigger: {
-                trigger: element,
-                start: "top 90%",
-                end: "100% center",
-                scrub: 2
-              }
-            });
-          };
-          
-          window.FratelliGSAP = window.FratelliGSAP || {};
-
-          window.FratelliGSAP = window.FratelliGSAP || {};
-
-          window.FratelliGSAP.initVideoScrub = function (options) {
-            const {
-              wrapperId,
-              pinId,
-              canvasId,
-              videoId,
-              onReady = () => {},
-              onUpdate = () => {},
-              debug = false, // set to true to see console logs for debugging
-            } = options;
-          
-            const wrapper = document.getElementById(wrapperId);
-            const pin = document.getElementById(pinId);
-            const canvas = document.getElementById(canvasId);
-            const video = document.getElementById(videoId);
-          
-            if (!wrapper || !pin || !canvas || !video) {
-              console.warn('Video scrub elements not found');
-              return null;
-            }
-          
-            // ensure mobile-friendly attributes
-            try {
-              video.muted = true;
-              video.playsInline = true;
-              video.setAttribute && video.setAttribute('playsinline', '');
-              video.setAttribute && video.setAttribute('webkit-playsinline', '');
-              video.preload = 'auto';
-            } catch (e) {}
-          
-            const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
-            ctx.imageSmoothingEnabled = true;
-          
-            // constants
-            const STEP = 1 / 60; // quantize to 60Hz
-            const DRAW_FALLBACK_DELAY = 25; // ms: fallback draw after setting currentTime if 'seeked' doesn't fire quickly
-            const DEBUG = !!debug;
-          
-            // state
-            let duration = 0;
-            let startY = 0;
-            let endY = 0;
-          
-            // loop control
-            let rafId = null;
-            let visible = false; // section visibility (IntersectionObserver)
-            let lastRequestedTime = -1;
-            let lastDrawTs = 0;
-          
-            function dbg(...args) { if (DEBUG) console.log('[scrub]', ...args); }
-          
-            function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
-          
-            function setAbsoluteAt(y) {
-              pin.style.position = 'absolute';
-              pin.style.top = y + 'px';
-              pin.style.left = '0';
-              pin.style.right = '0';
-              pin.style.height = '100vh';
-              pin.style.width = '100%';
-            }
-          
-            function updatePin() {
-              const rect = wrapper.getBoundingClientRect();
-              const vh = window.innerHeight || document.documentElement.clientHeight;
-              if (rect.top > 0) return setAbsoluteAt(0);
-              if (rect.bottom <= vh) return setAbsoluteAt(wrapper.offsetHeight - vh);
-          
-              pin.style.position = 'fixed';
-              pin.style.top = '0';
-              pin.style.left = '0';
-              pin.style.right = '0';
-              pin.style.height = '100vh';
-              pin.style.width = '100%';
-            }
-          
-            function measure() {
-              const rect = wrapper.getBoundingClientRect();
-              const pageY = window.pageYOffset || document.documentElement.scrollTop || 0;
-              startY = pageY + rect.top;
-              endY = startY + Math.max(1, wrapper.offsetHeight - window.innerHeight);
-              updatePin();
-            }
-          
-            function resizeCanvasToDisplaySize() {
-              const dpr = Math.max(1, window.devicePixelRatio || 1);
-              const wCss = canvas.clientWidth || window.innerWidth;
-              const hCss = canvas.clientHeight || window.innerHeight;
-              const w = Math.round(wCss * dpr);
-              const h = Math.round(hCss * dpr);
-              if (canvas.width !== w || canvas.height !== h) {
-                canvas.width = w;
-                canvas.height = h;
-                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-              }
-            }
-          
-            function draw() {
-              try {
-                ctx.clearRect(0, 0, canvas.clientWidth || window.innerWidth, canvas.clientHeight || window.innerHeight);
-                ctx.drawImage(video, 0, 0, canvas.clientWidth || window.innerWidth, canvas.clientHeight || window.innerHeight);
-                lastDrawTs = performance.now();
-              } catch (e) {
-                // ignore until frame available
-              }
-            }
-          
-            // Simple safe seek helper: set currentTime (fastSeek used if available).
-            function seekTo(timeSec) {
-              const t = clamp(timeSec, 0, Math.max(0, duration - 1e-6));
-              if (Math.abs(t - lastRequestedTime) < 1e-6) {
-                // no-op
-                return;
-              }
-              lastRequestedTime = t;
-              try {
-                if (typeof video.fastSeek === 'function') {
-                  video.fastSeek(t);
-                } else {
-                  video.currentTime = t;
-                }
-                // fallback draw in case 'seeked' doesn't fire quickly
-                setTimeout(() => {
-                  // only draw if no new draw happened recently (prevents extra draws)
-                  if (performance.now() - lastDrawTs > DRAW_FALLBACK_DELAY) {
-                    draw();
-                    dbg('fallback draw after seek to', t);
-                  }
-                }, DRAW_FALLBACK_DELAY);
-              } catch (err) {
-                dbg('seekTo error', err);
-              }
-            }
-          
-            // We'll use requestVideoFrameCallback when available to draw final presented frames
-            let rvfcActive = false;
-            function startRVFC() {
-              if (typeof video.requestVideoFrameCallback === 'function' && !rvfcActive) {
-                rvfcActive = true;
-                const cb = (now, meta) => {
-                  draw();
-                  if (rvfcActive) video.requestVideoFrameCallback(cb);
-                };
-                try { video.requestVideoFrameCallback(cb); } catch (e) { rvfcActive = false; }
-              }
-            }
-            function stopRVFC() { rvfcActive = false; }
-          
-            // IntersectionObserver to start/stop RAF while element visible.
-            const io = new IntersectionObserver(entries => {
-              entries.forEach(e => {
-                visible = e.isIntersecting;
-                dbg('visibility', visible);
-                if (visible) {
-                  // make sure measurements are fresh then start loop
-                  measure();
-                  startLoop();
-                  startRVFC();
-                } else {
-                  // stop loop when not visible to avoid mobile throttling issues
-                  stopLoop();
-                  stopRVFC();
-                }
-              });
-            }, { threshold: 0.01 });
-            io.observe(wrapper);
-          
-            // Seeked handler: draw once a seek finishes (many browsers)
-            video.addEventListener('seeked', () => {
-              draw();
-              dbg('seeked -> draw', video.currentTime);
-            });
-          
-            function tick() {
-              // compute progress by reading wrapper position on every frame
-              measure(); // subtle: keeps start/end accurate if layout changes as user scrolls
-              const pageY = window.pageYOffset || document.documentElement.scrollTop || 0;
-              const progRaw = (pageY - startY) / Math.max(1, endY - startY);
-              const p = clamp(progRaw, 0, 1);
-              const tRaw = p * duration;
-              const tQuant = clamp(Math.round(tRaw / STEP) * STEP, 0, Math.max(0, duration - 1e-6));
-          
-              // Always attempt to set video.currentTime when visible and progress changed.
-              // This makes scrub deterministic: scroll -> exact time.
-              seekTo(tQuant);
-          
-              // call user update
-              try { onUpdate(p, tQuant); } catch (e) {}
-          
-              // draw fallback for browsers without RVFC (we still rely on seeked for frames)
-              // but ensure a draw each frame in case the browser's video element displays frame synchronously
-              if (typeof video.requestVideoFrameCallback !== 'function') {
-                draw();
-              }
-          
-              rafId = requestAnimationFrame(tick);
-            }
-          
-            function startLoop() {
-              if (!rafId && visible) {
-                rafId = requestAnimationFrame(tick);
-                dbg('loop started');
-              }
-            }
-            function stopLoop() {
-              if (rafId) {
-                cancelAnimationFrame(rafId);
-                rafId = null;
-                dbg('loop stopped');
-              }
-            }
-          
-            function onLoadedMeta() {
-              duration = video.duration || 0;
-              if (!duration || !isFinite(duration)) {
-                console.warn('Invalid video duration, falling back to 1s');
-                duration = 1;
-              }
-              video.pause(); // control time manually
-          
-              resizeCanvasToDisplaySize();
-              measure();
-              // initial sync to 0
-              seekTo(0);
-              draw();
-          
-              // start things only if wrapper visible (io will start loop), otherwise wait
-              if (visible) {
-                startLoop();
-                startRVFC();
-              }
-          
-              try { onReady({ duration, video, canvas }); } catch (e) {}
-            }
-          
-            // attach loadedmetadata
-            video.addEventListener('loadedmetadata', onLoadedMeta);
-          
-            // if metadata already available
-            if (video.readyState >= 1) onLoadedMeta();
-            else try { video.load(); } catch (e) {}
-          
-            // resize handling
-            window.addEventListener('resize', () => {
-              resizeCanvasToDisplaySize();
-              measure();
-              draw();
-            });
-          
-            // expose a small debug method in case you want to poke from console
-            const api = {
-              stop() { stopLoop(); stopRVFC(); },
-              start() { startLoop(); startRVFC(); },
-              forceDraw() { draw(); },
-              debugOn() { return dbg('debug on'); },
-            };
-          
-            // return cleanup function (same public shape as original)
-            return function cleanup() {
-              stopLoop();
-              stopRVFC();
-              try { io.disconnect(); } catch (e) {}
-              try { video.removeEventListener('loadedmetadata', onLoadedMeta); } catch (e) {}
-              try { window.removeEventListener('resize', resizeCanvasToDisplaySize); } catch (e) {}
-              dbg('cleanup done');
-              return api;
-            };
-          };
-          
-
-
-
-
-
-
-          
-          console.log('GSAP initialized with FratelliGSAP utilities');
-          
         } catch (e) {
           console.error('Error initializing GSAP utilities:', e);
         }
       } else {
         console.warn('GSAP not available. Some animations may not work.');
       }
-      // Check if device is mobile
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      
-      // Function to safely play video with fallback for autoplay restrictions
-      async function safePlayVideo(video) {
-        try {
-          // Ensure video is muted for autoplay to work on mobile
-          video.muted = true;
-          video.playsInline = true;
-          video.setAttribute('playsinline', '');
-          video.setAttribute('webkit-playsinline', '');
-          
-          // Try to play the video
-          const playPromise = video.play();
-          
-          if (playPromise !== undefined) {
-            await playPromise.catch(async (e) => {
-              console.log('Autoplay prevented, showing fallback UI');
-              // Show play button or other UI to indicate video can be played
-              video.controls = true;
-              video.style.opacity = '1';
-            });
-          }
-          return true;
-        } catch (error) {
-          console.error('Error playing video:', error);
-          video.controls = true;
-          video.style.opacity = '1';
-          return false;
-        }
-      }
-      
-      // Mobile-only Lenis initialization for smooth video scrubbing
-      if (isMobile) {
-        // Add touch event handlers for video elements
-        function setupVideoTouchHandlers() {
-          document.querySelectorAll('video').forEach(video => {
-            let touchStartY = 0;
-            let touchStartTime = 0;
-            let lastTouchY = 0;
-            let lastTouchTime = 0;
-            let velocity = 0;
-            
-            video.addEventListener('touchstart', (e) => {
-              touchStartY = e.touches[0].clientY;
-              touchStartTime = performance.now();
-              lastTouchY = touchStartY;
-              lastTouchTime = touchStartTime;
-              velocity = 0;
-              
-              // Set video attributes for mobile
-              video.muted = true;
-              video.playsInline = true;
-              video.setAttribute('playsinline', '');
-              video.setAttribute('webkit-playsinline', '');
-              video.setAttribute('muted', 'muted');
-              
-              // Try to play the video on first touch
-              if (video.paused) {
-                safePlayVideo(video);
-              }
-            }, { passive: true });
-            
-            video.addEventListener('touchmove', (e) => {
-              e.preventDefault();
-              const touchY = e.touches[0].clientY;
-              const currentTime = performance.now();
-              const deltaY = touchY - lastTouchY;
-              const deltaTime = currentTime - lastTouchTime;
-              
-              if (deltaTime > 0) {
-                // Calculate velocity (pixels per millisecond)
-                velocity = deltaY / deltaTime;
-                
-                // Update video time based on touch movement
-                const timeChange = -deltaY * 0.005; // Adjust sensitivity as needed
-                video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + timeChange));
-                
-                // Force a draw to update the frame
-                video.requestVideoFrameCallback(() => {
-                  video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + timeChange));
-                });
-              }
-              
-              lastTouchY = touchY;
-              lastTouchTime = currentTime;
-            }, { passive: false });
-            
-            video.addEventListener('touchend', () => {
-              // Apply momentum based on last velocity
-              if (Math.abs(velocity) > 0.1) {
-                const momentumDuration = 300; // ms
-                const startTime = performance.now();
-                const startScroll = 0;
-                const distance = velocity * momentumDuration * 0.5; // Dampen the effect
-                
-                function applyMomentum(timestamp) {
-                  const elapsed = timestamp - startTime;
-                  const progress = Math.min(elapsed / momentumDuration, 1);
-                  const easeOut = 1 - Math.pow(1 - progress, 3); // Ease out cubic
-                  
-                  const scrollChange = distance * (1 - easeOut);
-                  video.currentTime = Math.max(0, Math.min(
-                    video.duration, 
-                    video.currentTime - scrollChange * 0.01 // Scale down the effect
-                  ));
-                  
-                  if (progress < 1) {
-                    requestAnimationFrame(applyMomentum);
-                  }
-                }
-                
-                requestAnimationFrame(applyMomentum);
-              }
-            }, { passive: true });
-          });
-        }
-        
-        // Initialize touch handlers when DOM is ready
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', setupVideoTouchHandlers);
-        } else {
-          setupVideoTouchHandlers();
-        }
-        // Calculate optimal duration based on viewport height (150vh = 1.5 * viewport height)
-        const viewportHeight = window.innerHeight;
-        const scrollDistance = viewportHeight * 1.5; // 150vh
-        const targetDuration = 1.5; // Target 1.5 seconds to scroll 150vh for more responsive video scrubbing
-        
-        // Optimized Lenis configuration for 1s video scrubbing
-        const lenis = new Lenis({
-          duration: isMobile ? 1.5 : 1.0,
-          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-          smoothWheel: !isMobile,
-          smoothTouch: isMobile,
-          touchMultiplier: isMobile ? 1.8 : 1,
-          wheelMultiplier: 1.0,
-          infinite: false,
-          gestureOrientation: 'vertical',
-          normalizeWheel: true,
-          lerp: isMobile ? 0.06 : 0.08,
-          syncTouch: isMobile,
-          syncTouchLerp: isMobile ? 0.06 : 0.1,
-          touchInertiaMultiplier: isMobile ? 3.0 : 2.5,
-          wheelInertiaMultiplier: 2.5,
-          autoResize: true
-        });
-
-        // 120fps optimization using requestAnimationFrame with high precision
-        let rafId;
-        const raf = (time) => {
-          lenis.raf(time);
-          rafId = requestAnimationFrame(raf);
-        };
-        
-        // Start the animation loop
-        rafId = requestAnimationFrame(raf);
-        
-        // Handle page visibility changes
-        document.addEventListener('visibilitychange', () => {
-          if (document.hidden) {
-            cancelAnimationFrame(rafId);
-          } else {
-            rafId = requestAnimationFrame(raf);
-          }
-        });
-        
-        // Clean up on unmount
-        window.addEventListener('beforeunload', () => {
-          cancelAnimationFrame(rafId);
-          lenis.destroy();
-        });
-      }
-
-      // Handle video scrub events with Lenis integration
-      if (isMobile && window.lenis) {
-        // Initialize video scrub state
-        let isScrubbing = false;
-        
-        // Listen for video scrub events
-        document.addEventListener('videoScrubStart', () => {
-          if (window.lenis) {
-            isScrubbing = true;
-            // Smoother scrolling during video scrub
-            window.lenis.options.lerp = 0.03; // More precise control
-            window.lenis.options.duration = 0.6; // Faster response for scrubbing
-            window.lenis.options.touchMultiplier = 1.2; // More direct control
-          }
-        });
-        
-        document.addEventListener('videoScrubEnd', () => {
-          if (window.lenis) {
-            isScrubbing = false;
-            // Restore default mobile settings
-            window.lenis.options.lerp = 0.06;
-            window.lenis.options.duration = 1.5;
-            window.lenis.options.touchMultiplier = 1.8;
-          }
-        });
-        
-        // Add touch event listeners to video elements for better mobile handling
-        document.querySelectorAll('video').forEach(video => {
-          // Ensure video plays inline on iOS
-          video.muted = true;
-          video.playsInline = true;
-          video.setAttribute('playsinline', '');
-          video.setAttribute('webkit-playsinline', '');
-          video.setAttribute('muted', 'muted');
-          video.preload = 'auto';
-          
-          // Add tap-to-play functionality
-          const playOverlay = document.createElement('div');
-          playOverlay.style.position = 'absolute';
-          playOverlay.style.top = '0';
-          playOverlay.style.left = '0';
-          playOverlay.style.width = '100%';
-          playOverlay.style.height = '100%';
-          playOverlay.style.display = 'flex';
-          playOverlay.style.alignItems = 'center';
-          playOverlay.style.justifyContent = 'center';
-          playOverlay.style.background = 'rgba(0,0,0,0.3)';
-          playOverlay.style.cursor = 'pointer';
-          playOverlay.style.zIndex = '10';
-          
-          const playIcon = document.createElement('div');
-          playIcon.innerHTML = '▶️';
-          playIcon.style.fontSize = '48px';
-          playOverlay.appendChild(playIcon);
-          
-          // Only show play overlay if video is paused
-          if (video.paused) {
-            video.parentNode.style.position = 'relative';
-            video.parentNode.insertBefore(playOverlay, video.nextSibling);
-          }
-          
-          // Handle play/pause on tap
-          const togglePlay = async (e) => {
-            e.stopPropagation();
-            if (video.paused) {
-              const played = await safePlayVideo(video);
-              if (played) {
-                playOverlay.style.display = 'none';
-              }
-            } else {
-              video.pause();
-              playOverlay.style.display = 'flex';
-            }
-          };
-          
-          playOverlay.addEventListener('click', togglePlay);
-          playOverlay.addEventListener('touchend', togglePlay);
-          
-          // Update play overlay when video ends
-          video.addEventListener('ended', () => {
-            playOverlay.style.display = 'flex';
-          });
-        });
-      }
-
-      // Handle mobile touch events better
-      if ('ontouchstart' in window) {
-        // Add passive: true for better touch performance
-        document.addEventListener('touchstart', () => {}, { passive: true });
-        document.addEventListener('touchmove', () => {}, { passive: true });
-      }
-
-      // Fix for iOS rubber-banding
-      document.body.style.overscrollBehavior = 'none';
     </script>
+
+    
+<script>
+  (function () {
+    // Defensive: don't init in the Shopify editor / content editor (optional)
+    var isEditor = typeof Shopify !== 'undefined' && Shopify.designMode;
+    if (isEditor) return;
+
+    // Init Lenis with a "heavy/inertial" feel like large-brand landing pages
+    // Tweak these values to taste: duration (seconds), wheelMultiplier (responsiveness),
+    // smoothTouch (touch smoothing), normalizeWheel (consistent on different devices)
+    var lenis = new Lenis({
+      // global smoothing on/off
+      smooth: true,
+
+      // how long the easing lasts (sec). Larger => more inertia / floaty feel.
+      duration: 1.2,
+
+      // easing function (you can keep this or use a built-in curve)
+      easing: function (t) {
+        // gentle easeOutCubic — good cinematic feel
+        return 1 - Math.pow(1 - t, 3);
+      },
+
+      // mouse wheel multiplier - lower = heavier feel, higher = snappier
+      wheelMultiplier: 3.5,
+
+      // normalize wheel events across devices (recommended for consistent feel)
+      normalizeWheel: true,
+
+      // touch smoothing — set true if you want smoothing on mobile touch as well
+      smoothTouch: true,
+
+      // orientation & gesture config (vertical is typical)
+      direction: 'vertical',
+      gestureOrientation: 'vertical',
+
+      // prevents infinite scroll wrap behavior
+      infinite: false
+    });
+
+    // Hook Lenis into GSAP ScrollTrigger so ScrollTrigger reads the smoothed position
+    if (window.gsap && window.ScrollTrigger) {
+      // Ensure ScrollTrigger is registered already in your theme
+      lenis.on('scroll', function (e) {
+        // Update ScrollTrigger whenever Lenis emits a scroll event
+        ScrollTrigger.update();
+      });
+
+      // Also update ScrollTrigger from RAF to keep perfect sync with Lenis RAF loop
+      gsap.ticker.add(function () {
+        ScrollTrigger.update();
+      });
+    }
+
+    // RAF loop for Lenis (required)
+    function raf(time) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+
+    // Optional global helper to allow toggling Lenis (useful for overlays/modals)
+    window.__lenis = lenis;
+  })();
+</script>
     
     <link rel="stylesheet" href="{{ 'theme.css' | asset_url }}">
     <link rel="stylesheet" href="{{ 'custom-header.css' | asset_url }}" type="text/css">

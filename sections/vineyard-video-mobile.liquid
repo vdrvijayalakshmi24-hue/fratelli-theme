@@ -1,336 +1,219 @@
 {% comment %}
-  sections/first-video-and-content-duplicate.liquid
-  - Duplicate of first-video-and-content with all classnames / ids / selectors renamed (prefix: dup- / jason-dup)
-  - Canvas-based video scrub section + content.
-  - Video src: {{ 'Video_2.mp4' | asset_url }} (unchanged inside comment but actual source below is Taking_Wine_Sette.mp4 as original)
-  - TRACK_VH = 250 (section height).
-  - STEP = 1/30 (30 fps).
-  - Schema max_blocks: 1.
+  Video Scrub (GSAP + ScrollTrigger)
+  - Pin the media wrapper (stable element) when it reaches top of viewport
+  - Scrub the child <video> element's currentTime using the scroll progress
 {% endcomment %}
 
-<section id="dup-video-section-{{ section.id }}" class="dup-video-section" data-section-id="{{ section.id }}">
-    <style>
-      /* ---------- Layout / scrub section ---------- */
-      .dup-vd-wrapper {
-        position: relative;
-        height: 150vh; /* TRACK_VH */
-        width: 100%;
-        overflow: visible;
-        box-sizing: border-box;
-        background: #000;
-      }
-
-      @media (min-width: 1024px) {
-        .dup-vd-wrapper {
-          height: 200vh !important;
-        }
-      }
-  
-      .dup-vd-pin {
-        position: absolute; /* JS toggles absolute/fixed for reliable pin */
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 100vh;
-        width: 100%;
-        z-index: 0;
-        overflow: hidden;
-        display: block;
-        background: #000;
-      }
-  
-      .dup-vd-canvas {
-        width: 100%;
-        height: 100%;
-        display: block;
-        object-fit: cover;
-        background: #000;
-        image-rendering: auto;
-      }
-  
-      .dup-vd-video-decoder {
-        position: absolute;
-        opacity: 0;
-        pointer-events: none;
-        width: 1px;
-        height: 1px;
-        left: -9999px;
-        top: -9999px;
-      }
-  
-      /* spacer to ensure page can scroll */
-      .dup-vd-spacer {
-        height: 1px;
-      }
-  
-      /* ---------- Content area (converted from FullSceenVideoContent / Tailwind) ---------- */
-      /* Container for the content — scoped by section id in DOM rather than CSS only */
-      .dup-video-content {
-        position: relative;
-        z-index: 10;
-        box-sizing: border-box;
-        width: 100%;
-        overflow: hidden;
-        padding: 0 1.5rem;
-      }
-  
-      .jason-dup {
-        position: relative;
-        z-index: 10;
-        margin-top: 5rem; /* fallback vertical spacing if JS not applied */
-        display: flex;
-        flex-direction: column;
-        gap: 1.25rem;
-        overflow-x: hidden;
-        width: 100vw;
-        box-sizing: border-box;
-        color: #FFFFF8;
-        transform: translateY(40px); /* initial state */
-        opacity: 0;                  /* initial state */
-      }
-  
-      @media (min-width: 1024px) {
-        .jason-dup { flex-direction: row; padding-left: 10rem; }
-      }
-  
-      .jason-dup-content {
-        max-width: 56rem; /* max-w-3xl approx */
-        margin-bottom: 2.5rem;
-      }
-  
-      .jason-dup h1 {
-        margin-top: 6rem; /* lowered to avoid overlapping pinned video */
-        font-family: "Utile", sans-serif;
-        text-transform: uppercase;
-        margin-bottom: 2.5rem;
-        color: #F4CF80;
-        font-size: 44px;
-        letter-spacing: 0;
-      }
-  
-      .jason-dup h2 {
-        font-family: "Playfair Display", serif;
-        margin-bottom: 1.75rem;
-        padding-right: 5rem;
-        color: #FFFFF8;
-        font-size: 32px;
-        font-style: italic;
-        letter-spacing: -0.06em;
-      }
-  
-      .jason-dup p {
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-        padding-right: 7rem;
-        color: #FFFFF8;
-        font-size: 20px;
-        letter-spacing: -0.04em;
-      }
-  
-      .explore-btn-dup {
-        background: #fff;
-        color: #000;
-        border: none;
-        padding: 0.625rem 1.25rem;
-        border-radius: 20px;
-        font-weight: 600;
-        cursor: pointer;
-      }
-  
-      /* Background gradient variations */
-      .content-1-dup {
-        position: relative;
-        display: block;
-        background: linear-gradient(0deg, #34461A 74.46%, rgba(0, 0, 0, 0) 100%);
-        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 100%);
-        mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 100%);
-        box-sizing: border-box;
-        padding: 0 2rem;
-      }
-  
-      /* small helper for the image if provided */
-      .full-image-dup {
-        width: 100%;
-        height: 100vh;
-        object-fit: cover;
-        display: block;
-      }
-    </style>
-  
-    <!-- ========== Scrub section (canvas + hidden video) ========== -->
-    <section
-      class="dup-vd-wrapper"
-      id="dup-vd-wrapper-{{ section.id }}"
-      data-track-vh="250"
+<section id="section-one-video-scrub-{{ section.id }}" class="fratelli-video-scrub fratelli-video-scrub--{{ section.id }}">
+  <div class="fratelli-video-scrub__inner">
+    <!-- Pinned wrapper (we pin this) -->
+    <div class="fratelli-video-scrub__media">
+      <video
+        class="fratelli-video-scrub__video"
+        playsinline
+        muted
+        preload="auto"
+        aria-hidden="true"
       >
-      <div class="dup-vd-pin" id="dup-vd-pin-{{ section.id }}">
-        <canvas id="dup-vd-canvas-{{ section.id }}" class="dup-vd-canvas" role="img" aria-label="Video scrub"></canvas>
-        <video
-          id="dup-vd-video-{{ section.id }}"
-          class="dup-vd-video-decoder"
-          muted
-          playsinline
-          preload="auto"
-          webkit-playsinline
-          x-webkit-airplay="allow"
-        >
-          <source src="https://cdn.shopify.com/videos/c/o/v/49f4e96f0c8a43fa90adad4efeaa9e52.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-      </div>
-  
-      <div class="dup-vd-spacer" aria-hidden="true"></div>
-    </section>
-  
-    <!-- ========== Content area (converted from FullSceenVideoContent) ========== -->
-    <section class="dup-video-content content-1-dup" id="dup-video-content-{{ section.id }}">
-      <div class="jason-dup" id="jason-dup-{{ section.id }}">
-        <div class="jason-dup-content">
-          <h1 id="jason-dup-h1-{{ section.id }}">Explore Range of Fratelli</h1>
-          <h2 id="jason-dup-h2-{{ section.id }}">From Akluj's Soil</h2>
-          <p id="jason-dup-p-{{ section.id }}">
+        <source src="https://cdn.shopify.com/videos/c/o/v/49f4e96f0c8a43fa90adad4efeaa9e52.mp4" type="video/mp4">
+      </video>
+    </div>
+
+    <!-- Content area -->
+    <div class="fratelli-video-scrub__content" data-over-content-one>
+      <div class="fratelli-video-scrub__container" id="jason-{{ section.id }}">
+        <div class="fratelli-video-scrub__content-inner">
+          <h1 id="jason-h1-{{ section.id }}">Explore Range of Fratelli</h1>
+          <h2 id="jason-h2-{{ section.id }}">From Akluj's Soil</h2>
+          <p id="jason-p-{{ section.id }}">
             Their hands don't just plant vines. they planted a vision. they dont dont follow europe. they carved india into every bottle.
           </p>
-  
           <div style="margin-top: 1.25rem;">
-            <button type="button" class="explore-btn-dup" id="jason-dup-btn-{{ section.id }}">Explore</button>
+            <button type="button" class="fratelli-video-scrub__explore-btn" id="jason-btn-{{ section.id }}">Explore</button>
           </div>
         </div>
       </div>
-    </section>
-  
-    <script>
-      (function() {
-        const sectionId = '{{ section.id }}';
-        
-        var videoInitialized = false;
-        var cleanupVideoScrub = null;
-        
-        function initializeVideoScrub() {
-          console.log('initializeVideoScrub called for vineyard-video-mobile');
-          if (videoInitialized) {
-            console.log('Video already initialized, skipping');
-            return;
-          }
-          videoInitialized = true;
-          
-          // Initialize video scrub using centralized utility
-          if (window.FratelliGSAP && typeof window.FratelliGSAP.initVideoScrub === 'function') {
-            console.log('Initializing video scrub with FratelliGSAP');
-            try {
-              cleanupVideoScrub = window.FratelliGSAP.initVideoScrub({
-                wrapperId: 'dup-vd-wrapper-' + sectionId,
-                pinId: 'dup-vd-pin-' + sectionId,
-                canvasId: 'dup-vd-canvas-' + sectionId,
-                videoId: 'dup-vd-video-' + sectionId,
-                onReady: function(videoInfo) {
-                  console.log('Vineyard mobile video scrub initialized for section:', sectionId, 'Video info:', videoInfo);
-                  initContentAnimations();
-                },
-                onUpdate: function(progress, time) {
-                  // Optional: Add any progress-based updates here
-                  console.log('Video progress:', { progress, time });
-                },
-                onError: function(error) {
-                  console.error('Error initializing video scrub:', error);
-                }
-              });
-              console.log('Video scrub initialization started');
-            } catch (error) {
-              console.error('Error in initVideoScrub:', error);
-            }
-          } else {
-            console.warn('FratelliGSAP utilities not available', {
-              FratelliGSAP: !!window.FratelliGSAP,
-              initVideoScrub: window.FratelliGSAP ? typeof window.FratelliGSAP.initVideoScrub : 'no FratelliGSAP'
-            });
-          }
-        }
+    </div>
+  </div>
 
-        // Initialize immediately if page content is already visible
-        if (document.getElementById('page-content')?.style.display !== 'none') {
-          initializeVideoScrub();
-        }
-        
-        // Also initialize when page content is shown
-        document.addEventListener('pageContentShown', initializeVideoScrub);
+  <style>
+    .fratelli-video-scrub { position: relative; width: 100%; }
+    .fratelli-video-scrub__inner { position: relative; width: 100%; }
 
-        // Handle window resize
-        function handleResize() {
-          var newIsMobile = window.innerWidth <= 767;
-          if (newIsMobile !== isMobile) {
-            // If breakpoint is crossed, reload the section
-            if (window.Shopify && window.Shopify.designMode) {
-              window.location.reload();
-            }
-          }
-        }
+    /* media wrapper */
+    .fratelli-video-scrub__media { width: 100%; position: relative; overflow: hidden; }
 
-        // Add resize listener with debounce
-        var resizeTimer;
-        window.addEventListener('resize', function() {
-          clearTimeout(resizeTimer);
-          resizeTimer = setTimeout(handleResize, 250);
-        });
-
-        // Cleanup on section unload
-        if (window.Shopify && window.Shopify.designMode) {
-          window.addEventListener('shopify:section:unload', function cleanupOnUnload() {
-            if (typeof cleanupVideoScrub === 'function') {
-              cleanupVideoScrub();
-            }
-            window.removeEventListener('resize', handleResize);
-            document.removeEventListener('pageContentShown', initializeVideoScrub);
-            window.removeEventListener('shopify:section:unload', cleanupOnUnload);
-          });
-        }
-
-        // Initialize content animations using centralized utility
-        function initContentAnimations() {
-          const contentSection = document.getElementById('dup-video-content-' + sectionId);
-          if (!contentSection) {
-            console.error('Content section not found');
-            return;
-          }
-          
-          const jasonDup = contentSection.querySelector('#jason-dup-' + sectionId) || contentSection.querySelector('.jason-dup');
-          if (!jasonDup) {
-            console.error('jason-dup element not found');
-            return;
-          }
-          
-          // Set initial margin (adjust these values as needed)
-          const hasImage = !!contentSection.querySelector('.full-image-dup');
-          const initialMargin = hasImage ? '-15vh' : '-62vh';
-          try { 
-            contentSection.style.marginTop = initialMargin; 
-          } catch (e) {
-            console.error('Error setting margin:', e);
-          }
-          
-          // Animate content using centralized utility if available
-          if (window.FratelliGSAP && typeof window.FratelliGSAP.animateFadeIn === 'function') {
-            window.FratelliGSAP.animateFadeIn(jasonDup);
-          } else {
-            // Fallback if utility not available
-            jasonDup.style.opacity = '1';
-            jasonDup.style.transform = 'translateY(0)';
-            jasonDup.style.transition = 'opacity 0.8s ease-out, transform 0.8s ease-out';
-          }
-        }
-      })();
-    </script>
-  
-    {% schema %}
-    {
-      "name": "Duplicate Video",
-      "settings": [],
-      "blocks": [],
-      "max_blocks": 1,
-      "presets": [
-        {
-          "name": "Duplicate Video Canvas Scrub"
-        }
-      ]
+    /* video: fill viewport, cover crop */
+    .fratelli-video-scrub__video {
+      width: 100%;
+      height: 100vh;       /* use 100vh (avoid 101vh which can confuse ScrollTrigger) */
+      display: block;
+      object-fit: cover;
+      will-change: transform;
     }
-    {% endschema %}
-  </section>
+
+    /* content starts in document flow; we'll overlay it via JS when needed */
+    .fratelli-video-scrub__content {
+      position: relative;
+      width: 100%;
+      margin-top: 0;
+      padding: 20px;
+      z-index: 2;
+      background: linear-gradient(0deg, #34461A 74.46%, rgba(0, 0, 0, 0) 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 100%);
+      mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 100%);
+    }
+
+    .fratelli-video-scrub__content-inner { max-width: 56rem; margin-bottom: 2.5rem; }
+
+    .fratelli-video-scrub__container h1 {
+      font-family: "Utile", sans-serif;
+      text-transform: uppercase;
+      color: #F4CF80;
+      font-size: 48px;
+      margin-top: 6rem;
+    }
+    .fratelli-video-scrub__container h2 {
+      font-family: "Playfair Display", serif;
+      margin-bottom: 1.75rem;
+      padding-right: 5rem;
+      color: #FFFFF8;
+      font-size: 32px;
+      font-style: italic;
+      letter-spacing: -0.06em;
+    }
+    .fratelli-video-scrub__container p {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      padding-right: 7rem;
+      color: #FFFFF8;
+      font-size: 20px;
+      letter-spacing: -0.04em;
+    }
+
+    .fratelli-video-scrub__explore-btn {
+      background: #fff;
+      color: #000;
+      border: none;
+      padding: 0.625rem 1.25rem;
+      border-radius: 20px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    @media (min-width: 1024px) {
+      .fratelli-video-scrub__container { flex-direction: row; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .fratelli-video-scrub__content-panel { transition: none !important; }
+    }
+  </style>
+
+  <script>
+    (function () {
+      var root = document.getElementById("section-one-video-scrub-{{ section.id }}");
+      if (!root) return;
+
+      var mediaWrap = root.querySelector(".fratelli-video-scrub__media"); // pinned element
+      var videoEl = root.querySelector(".fratelli-video-scrub__video");
+      var overContent = root.querySelector("[data-over-content-one]");
+
+      if (!window.gsap || !window.ScrollTrigger) {
+        console.warn("GSAP/ScrollTrigger not found. Make sure they are loaded in theme.liquid.");
+        return;
+      }
+      gsap.registerPlugin(ScrollTrigger);
+
+      // Force consistent video height
+      try { videoEl.style.height = "100vh"; } catch (e) {}
+
+      // We'll overlay the content while the media is pinned so we can center it if needed.
+      // Keep a fallback initialTop percent (where content sits before centering).
+      if (overContent) {
+        // Set overlay styles (so it's visually above the video while pinned)
+        overContent.style.position = "absolute";
+        overContent.style.left = "0";
+        overContent.style.width = "100%";
+        overContent.style.zIndex = "2";
+        overContent.style.transform = "translateY(-50vh)";
+        // Initialize top (will be corrected on refresh)
+      }
+
+      // scrubMultiplier controls scrub length (1 = 1 viewport)
+      var scrubMultiplier = 1;
+
+      function scrubDistance() {
+        return Math.round(window.innerHeight * scrubMultiplier);
+      }
+
+      // Helper: safe set currentTime (some browsers may throw if invalid)
+      function setVideoTime(t) {
+        try {
+          // clamp t to [0, duration]
+          var dur = videoEl.duration || 0;
+          if (dur && isFinite(dur)) {
+            videoEl.currentTime = Math.max(0, Math.min(dur, t));
+          }
+        } catch (e) {
+          // ignore write errors (some mobile browsers restrict this in odd states)
+        }
+      }
+
+      // Main ScrollTrigger: pin the wrapper and scrub progress 0..1
+      var mainST = ScrollTrigger.create({
+        trigger: mediaWrap,
+        start: "top top",
+        end: () => "+=" + scrubDistance(),
+        pin: mediaWrap,          // pin the wrapper (not the video)
+        pinSpacing: true,
+        scrub: true,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+        // markers: true, // enable while debugging
+        onUpdate: function(self) {
+          var p = self.progress; // 0..1 over the pinned area
+
+          // If video duration is ready, map progress to currentTime
+          if (videoEl && !isNaN(videoEl.duration) && isFinite(videoEl.duration)) {
+            setVideoTime(p * videoEl.duration);
+          }
+        }
+      });
+
+      // Pause video initially and set time 0 when metadata is available
+      if (videoEl) {
+        function ensureReady() {
+          try { videoEl.pause(); } catch (e) {}
+          try { videoEl.currentTime = 0; } catch (e) {}
+          ScrollTrigger.refresh();
+        }
+        if (videoEl.readyState >= 2 && !isNaN(videoEl.duration)) {
+          ensureReady();
+        } else {
+          videoEl.addEventListener("loadedmetadata", ensureReady, { once: true });
+        }
+
+        // if reduced motion is preferred, do not animate video
+        var prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (prefersReduced) {
+          try { videoEl.pause(); } catch (e) {}
+        }
+      }
+
+      // Recompute when resizing viewport
+      window.addEventListener("resize", function () {
+        ScrollTrigger.refresh();
+      });
+    })();
+  </script>
+
+  {% schema %}
+  {
+    "name": "Video Scrub Section",
+    "settings": [],
+    "presets": [
+      { "name": "Video Scrub Section" }
+    ]
+  }
+  {% endschema %}
+</section>
