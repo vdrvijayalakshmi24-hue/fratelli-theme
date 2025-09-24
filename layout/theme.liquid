@@ -346,28 +346,29 @@ window.FratelliGSAP.initVideoScrub = function (options) {
       } else {
         console.warn('GSAP not available. Some animations may not work.');
       }
-      // Initialize Lenis with optimized settings for all devices
+      // Initialize Lenis with optimized settings for video scrub sync
       const lenis = new Lenis({
-        duration: 1.2,
-        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        smoothWheel: true,
-        smoothTouch: false, // Disable touch smoothing as it can cause issues on mobile
-        touchMultiplier: 1.5, // Smoother touch scrolling
+        duration: 0, // Set to 0 for instant scroll response
+        easing: (t) => t, // Linear easing for direct mapping
+        smoothWheel: false, // Disable smooth wheel
+        smoothTouch: false, // Disable touch smoothing
+        touchMultiplier: 1, // No multiplier for direct touch
         infinite: false,
         gestureOrientation: 'vertical',
-        wheelMultiplier: 1.1, // Smoother wheel scrolling
-        normalizeWheel: true, // Better cross-browser wheel behavior
-        lerp: 0.1, // Smoother animation
-        syncTouch: true, // Better touch sync
-        syncTouchLerp: 0.1, // Smoother touch sync
+        wheelMultiplier: 1, // No multiplier for direct wheel
+        normalizeWheel: false, // Disable to prevent any interference
+        lerp: 0, // No lerp for direct mapping
+        syncTouch: true, // Keep touch sync for better performance
+        syncTouchLerp: 0, // No lerp for touch sync
       });
 
       // Handle resize events
       function handleResize() {
-        // Adjust settings based on device type
-        const isMobile = window.innerWidth < 768;
-        lenis.options.smoothWheel = !isMobile; // Disable smooth wheel on mobile
-        lenis.options.smoothTouch = false; // Keep touch smoothing off as it can cause issues
+        // Disable all smoothing during video scrub
+        lenis.options.duration = 0;
+        lenis.options.lerp = 0;
+        lenis.options.smoothWheel = false;
+        lenis.options.smoothTouch = false;
       }
 
       // Initial setup
