@@ -346,119 +346,67 @@ window.FratelliGSAP.initVideoScrub = function (options) {
       } else {
         console.warn('GSAP not available. Some animations may not work.');
       }
-      // Rockstar Games-style video scrubbing implementation
-      let isVideoScrubbing = false;
-      let scrollY = 0;
-      let targetScrollY = 0;
-      let lastTimestamp = 0;
+      // Check if device is mobile
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
-      // Configuration
-      const config = {
-        scrollMultiplier: 1.0, // Adjust this based on your video length
-        maxScrollDelta: 100,   // Maximum pixels to move per frame for smoothness
-        touchScrollFactor: 1.5, // How much to multiply touch scroll by
-        wheelScrollFactor: 0.5  // How much to multiply wheel scroll by
-      };
+      // Mobile-only Lenis initialization
+      if (isMobile) {
+        // Optimized Lenis configuration for 120fps on mobile
+        const lenis = new Lenis({
+          duration: 1.0,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+          smoothWheel: true,
+          smoothTouch: true,
+          touchMultiplier: 1.2,
+          infinite: false,
+          gestureOrientation: 'vertical',
+          wheelMultiplier: 1.0,
+          normalizeWheel: false,
+          lerp: 0.08,
+          syncTouch: true,
+          syncTouchLerp: 0.1,
+        });
 
-      // Handle scroll events directly for video scrubbing
-      function handleScroll(e) {
-        if (!isVideoScrubbing) return;
+        // 120fps optimization using requestAnimationFrame with high precision
+        let rafId;
+        const raf = (time) => {
+          lenis.raf(time);
+          rafId = requestAnimationFrame(raf);
+        };
         
-        // Prevent default to stop default scrolling behavior
-        e.preventDefault();
+        // Start the animation loop
+        rafId = requestAnimationFrame(raf);
         
-        let deltaY = 0;
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            cancelAnimationFrame(rafId);
+          } else {
+            rafId = requestAnimationFrame(raf);
+          }
+        });
         
-        // Handle touch events
-        if (e.type === 'touchmove' && e.touches.length === 1) {
-          deltaY = -e.touches[0].clientY * config.touchScrollFactor;
-        } 
-        // Handle mouse wheel
-        else if (e.type === 'wheel') {
-          deltaY = e.deltaY * config.wheelScrollFactor;
-        }
-        
-        // Update target scroll position
-        targetScrollY += deltaY;
-        
-        // Clamp scroll position to valid range
-        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-        targetScrollY = Math.max(0, Math.min(maxScroll, targetScrollY));
-      }
-      
-      // Animation loop for smooth scrolling
-      function animateScroll(timestamp) {
-        if (!lastTimestamp) lastTimestamp = timestamp;
-        const deltaTime = timestamp - lastTimestamp;
-        lastTimestamp = timestamp;
-        
-        if (isVideoScrubbing) {
-          // Smoothly interpolate towards target scroll position
-          const diff = targetScrollY - scrollY;
-          const direction = Math.sign(diff);
-          const delta = Math.min(Math.abs(diff), config.maxScrollDelta * (deltaTime / 16));
-          
-          scrollY += direction * delta;
-          
-          // Update the actual scroll position
-          window.scrollTo(0, scrollY);
-          
-          // Dispatch scroll event for other listeners
-          window.dispatchEvent(new Event('scroll'));
-        }
-        
-        requestAnimationFrame(animateScroll);
-      }
-      
-      // Start the animation loop
-      requestAnimationFrame(animateScroll);
-      
-      // Set up event listeners for video scrubbing
-      function setupVideoScrubbing() {
-        // Add passive: false to ensure we can preventDefault
-        window.addEventListener('wheel', handleScroll, { passive: false });
-        window.addEventListener('touchmove', handleScroll, { passive: false });
-        
-        // Initial setup
-        scrollY = window.scrollY;
-        targetScrollY = scrollY;
-      }
-      
-      // Clean up event listeners
-      function cleanupVideoScrubbing() {
-        window.removeEventListener('wheel', handleScroll);
-        window.removeEventListener('touchmove', handleScroll);
+        // Clean up on unmount
+        window.addEventListener('beforeunload', () => {
+          cancelAnimationFrame(rafId);
+          lenis.destroy();
+        });
       }
 
-      // Initial setup
-      handleResize();
-      window.addEventListener('resize', handleResize, { passive: true });
-      window.addEventListener('orientationchange', handleResize, { passive: true });
-
-      // Handle video scrub start/end events
-      document.addEventListener('videoScrubStart', () => {
-        isVideoScrubbing = true;
-        setupVideoScrubbing();
-        // Store current scroll position when starting to scrub
-        scrollY = window.scrollY;
-        targetScrollY = scrollY;
-      });
-      
-      document.addEventListener('videoScrubEnd', () => {
-        isVideoScrubbing = false;
-        cleanupVideoScrubbing();
-      });
-      
-      // Initialize scroll position tracking
-      window.addEventListener('scroll', () => {
-        if (!isVideoScrubbing) {
-          scrollY = window.scrollY;
-          targetScrollY = scrollY;
-        }
-      }, { passive: true });
-
-      // Start the animation loop
-      requestAnimationFrame(raf);
+      // Handle video scrub events with Lenis integration
+      if (isMobile) {
+        document.addEventListener('videoScrubStart', () => {
+          // Enable smoother scrolling during video scrub
+          lenis.options.lerp = 0.04; // More precise control
+          lenis.options.duration = 0.8; // Slightly longer duration for smoothness
+        });
+        
+        document.addEventListener('videoScrubEnd', () => {
+          // Restore default mobile settings
+          lenis.options.lerp = 0.08;
+          lenis.options.duration = 1.0;
+        });
+      }
 
       // Handle mobile touch events better
       if ('ontouchstart' in window) {
