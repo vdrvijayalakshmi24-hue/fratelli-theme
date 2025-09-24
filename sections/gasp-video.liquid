@@ -139,13 +139,6 @@
         // Initialize top (will be corrected on refresh)
       }
 
-      // scrubMultiplier controls scrub length (1 = 1 viewport)
-      var scrubMultiplier = 1;
-
-      function scrubDistance() {
-        return Math.round(window.innerHeight * scrubMultiplier);
-      }
-
       // Helper: safe set currentTime (some browsers may throw if invalid)
       function setVideoTime(t) {
         try {
@@ -163,7 +156,7 @@
       var mainST = ScrollTrigger.create({
         trigger: mediaWrap,
         start: "top top",
-        end: () => "+=" + scrubDistance(),
+        end: "+=300%",
         pin: mediaWrap,          // pin the wrapper (not the video)
         pinSpacing: true,
         scrub: true,
