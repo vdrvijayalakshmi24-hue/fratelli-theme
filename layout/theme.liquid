@@ -63,200 +63,278 @@
           
           window.FratelliGSAP = window.FratelliGSAP || {};
 
-          window.FratelliGSAP.initVideoScrub = function(options) {
-            const {
-              wrapperId,
-              pinId,
-              canvasId,
-              videoId,
-              onReady = () => {},
-              onUpdate = () => {}
-            } = options;
+window.FratelliGSAP.initVideoScrub = function (options) {
+  const {
+    wrapperId,
+    pinId,
+    canvasId,
+    videoId,
+    onReady = () => {},
+    onUpdate = () => {},
+    debug = false, // set to true to see console logs for debugging
+  } = options;
 
-            const wrapper = document.getElementById(wrapperId);
-            const pin = document.getElementById(pinId);
-            const canvas = document.getElementById(canvasId);
-            const video = document.getElementById(videoId);
+  const wrapper = document.getElementById(wrapperId);
+  const pin = document.getElementById(pinId);
+  const canvas = document.getElementById(canvasId);
+  const video = document.getElementById(videoId);
 
-            if (!wrapper || !pin || !canvas || !video) {
-              console.warn('Video scrub elements not found');
-              return null;
-            }
+  if (!wrapper || !pin || !canvas || !video) {
+    console.warn('Video scrub elements not found');
+    return null;
+  }
 
-            const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
-            ctx.imageSmoothingEnabled = true;
+  // ensure mobile-friendly attributes
+  try {
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute && video.setAttribute('playsinline', '');
+    video.setAttribute && video.setAttribute('webkit-playsinline', '');
+    video.preload = 'auto';
+  } catch (e) {}
 
-            let duration = 0;
-            let startY = 0;
-            let endY = 0;
+  const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+  ctx.imageSmoothingEnabled = true;
 
-            // Seeking / draw state
-            let seeking = false;
-            let pending = null; // pending target time to seek to while a seek is in progress
-            let rAF = 0;
-            let lastDrawTs = 0;
+  // constants
+  const STEP = 1 / 60; // quantize to 60Hz
+  const DRAW_FALLBACK_DELAY = 25; // ms: fallback draw after setting currentTime if 'seeked' doesn't fire quickly
+  const DEBUG = !!debug;
 
-            function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+  // state
+  let duration = 0;
+  let startY = 0;
+  let endY = 0;
 
-            function setAbsoluteAt(y) {
-              pin.style.position = 'absolute';
-              pin.style.top = y + 'px';
-              pin.style.left = '0';
-              pin.style.right = '0';
-              pin.style.height = '100vh';
-              pin.style.width = '100%';
-            }
+  // loop control
+  let rafId = null;
+  let visible = false; // section visibility (IntersectionObserver)
+  let lastRequestedTime = -1;
+  let lastDrawTs = 0;
 
-            function updatePin() {
-              const rect = wrapper.getBoundingClientRect();
-              const vh = window.innerHeight || document.documentElement.clientHeight;
-              if (rect.top > 0) return setAbsoluteAt(0);
-              if (rect.bottom <= vh) return setAbsoluteAt(wrapper.offsetHeight - vh);
+  function dbg(...args) { if (DEBUG) console.log('[scrub]', ...args); }
 
-              pin.style.position = 'fixed';
-              pin.style.top = '0';
-              pin.style.left = '0';
-              pin.style.right = '0';
-              pin.style.height = '100vh';
-              pin.style.width = '100%';
-            }
+  function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
 
-            function measure() {
-              const rect = wrapper.getBoundingClientRect();
-              const pageY = window.pageYOffset || document.documentElement.scrollTop || 0;
-              startY = pageY + rect.top;
-              // Ensure endY is at least 1px beyond start to avoid divide-by-zero
-              endY = startY + Math.max(1, wrapper.offsetHeight - window.innerHeight);
-              updatePin();
-            }
+  function setAbsoluteAt(y) {
+    pin.style.position = 'absolute';
+    pin.style.top = y + 'px';
+    pin.style.left = '0';
+    pin.style.right = '0';
+    pin.style.height = '100vh';
+    pin.style.width = '100%';
+  }
 
-            function resizeCanvasToDisplaySize() {
-              const dpr = Math.max(1, window.devicePixelRatio || 1);
-              const displayWidth = canvas.clientWidth || window.innerWidth;
-              const displayHeight = canvas.clientHeight || window.innerHeight;
-              const w = Math.round(displayWidth * dpr);
-              const h = Math.round(displayHeight * dpr);
-              if (canvas.width !== w || canvas.height !== h) {
-                canvas.width = w;
-                canvas.height = h;
-                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-              }
-            }
+  function updatePin() {
+    const rect = wrapper.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    if (rect.top > 0) return setAbsoluteAt(0);
+    if (rect.bottom <= vh) return setAbsoluteAt(wrapper.offsetHeight - vh);
 
-            function draw() {
-              try {
-                ctx.clearRect(0, 0, canvas.clientWidth || window.innerWidth, canvas.clientHeight || window.innerHeight);
-                ctx.drawImage(video, 0, 0, canvas.clientWidth || window.innerWidth, canvas.clientHeight || window.innerHeight);
-              } catch (e) {
-                // ignore draw errors when video frame not ready
-              }
-            }
+    pin.style.position = 'fixed';
+    pin.style.top = '0';
+    pin.style.left = '0';
+    pin.style.right = '0';
+    pin.style.height = '100vh';
+    pin.style.width = '100%';
+  }
 
-            // Use 60 FPS step (quantize seeks to 1/60s)
-            const STEP = 1 / 60; // seconds ~ 16.666ms
+  function measure() {
+    const rect = wrapper.getBoundingClientRect();
+    const pageY = window.pageYOffset || document.documentElement.scrollTop || 0;
+    startY = pageY + rect.top;
+    endY = startY + Math.max(1, wrapper.offsetHeight - window.innerHeight);
+    updatePin();
+  }
 
-            function doSeek(t) {
-              seeking = true;
-              try {
-                const target = clamp(t, 0, Math.max(0, duration - 1e-6));
-                if (typeof video.fastSeek === 'function') video.fastSeek(target);
-                else video.currentTime = target;
-              } catch (e) {
-                seeking = false;
-              }
-            }
+  function resizeCanvasToDisplaySize() {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const wCss = canvas.clientWidth || window.innerWidth;
+    const hCss = canvas.clientHeight || window.innerHeight;
+    const w = Math.round(wCss * dpr);
+    const h = Math.round(hCss * dpr);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+  }
 
-            function onSeeked() {
-              // draw frame after seek completes
-              draw();
-              if (pending !== null) {
-                const next = pending;
-                pending = null;
-                doSeek(next);
-              } else {
-                seeking = false;
-              }
-            }
+  function draw() {
+    try {
+      ctx.clearRect(0, 0, canvas.clientWidth || window.innerWidth, canvas.clientHeight || window.innerHeight);
+      ctx.drawImage(video, 0, 0, canvas.clientWidth || window.innerWidth, canvas.clientHeight || window.innerHeight);
+      lastDrawTs = performance.now();
+    } catch (e) {
+      // ignore until frame available
+    }
+  }
 
-            // rAF-driven tick which samples scroll and requests seeks at 60Hz step quantization.
-            function tick(now) {
-              rAF = 0;
-              lastDrawTs = now;
+  // Simple safe seek helper: set currentTime (fastSeek used if available).
+  function seekTo(timeSec) {
+    const t = clamp(timeSec, 0, Math.max(0, duration - 1e-6));
+    if (Math.abs(t - lastRequestedTime) < 1e-6) {
+      // no-op
+      return;
+    }
+    lastRequestedTime = t;
+    try {
+      if (typeof video.fastSeek === 'function') {
+        video.fastSeek(t);
+      } else {
+        video.currentTime = t;
+      }
+      // fallback draw in case 'seeked' doesn't fire quickly
+      setTimeout(() => {
+        // only draw if no new draw happened recently (prevents extra draws)
+        if (performance.now() - lastDrawTs > DRAW_FALLBACK_DELAY) {
+          draw();
+          dbg('fallback draw after seek to', t);
+        }
+      }, DRAW_FALLBACK_DELAY);
+    } catch (err) {
+      dbg('seekTo error', err);
+    }
+  }
 
-              const pageY = window.pageYOffset || document.documentElement.scrollTop || 0;
-              const progRaw = (pageY - startY) / Math.max(1, endY - startY);
-              const p = clamp(progRaw, 0, 1);
-              const tRaw = p * duration;
+  // We'll use requestVideoFrameCallback when available to draw final presented frames
+  let rvfcActive = false;
+  function startRVFC() {
+    if (typeof video.requestVideoFrameCallback === 'function' && !rvfcActive) {
+      rvfcActive = true;
+      const cb = (now, meta) => {
+        draw();
+        if (rvfcActive) video.requestVideoFrameCallback(cb);
+      };
+      try { video.requestVideoFrameCallback(cb); } catch (e) { rvfcActive = false; }
+    }
+  }
+  function stopRVFC() { rvfcActive = false; }
 
-              // quantize requested time to 1/60 step (this emulates 60fps sampling)
-              const tQuant = clamp(Math.round(tRaw / STEP) * STEP, 0, Math.max(0, duration - 1e-6));
+  // IntersectionObserver to start/stop RAF while element visible.
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      visible = e.isIntersecting;
+      dbg('visibility', visible);
+      if (visible) {
+        // make sure measurements are fresh then start loop
+        measure();
+        startLoop();
+        startRVFC();
+      } else {
+        // stop loop when not visible to avoid mobile throttling issues
+        stopLoop();
+        stopRVFC();
+      }
+    });
+  }, { threshold: 0.01 });
+  io.observe(wrapper);
 
-              // If not currently seeking, start seeking; else set pending target
-              if (!seeking) {
-                doSeek(tQuant);
-              } else {
-                pending = tQuant;
-              }
+  // Seeked handler: draw once a seek finishes (many browsers)
+  video.addEventListener('seeked', () => {
+    draw();
+    dbg('seeked -> draw', video.currentTime);
+  });
 
-              updatePin();
-              onUpdate(p, tQuant);
+  function tick() {
+    // compute progress by reading wrapper position on every frame
+    measure(); // subtle: keeps start/end accurate if layout changes as user scrolls
+    const pageY = window.pageYOffset || document.documentElement.scrollTop || 0;
+    const progRaw = (pageY - startY) / Math.max(1, endY - startY);
+    const p = clamp(progRaw, 0, 1);
+    const tRaw = p * duration;
+    const tQuant = clamp(Math.round(tRaw / STEP) * STEP, 0, Math.max(0, duration - 1e-6));
 
-              // draw is handled in onSeeked and occasionally here (in case video plays frames)
-              // but ensure at least one draw per rAF to keep canvas synced on browsers where seeked events are delayed
-              draw();
-            }
+    // Always attempt to set video.currentTime when visible and progress changed.
+    // This makes scrub deterministic: scroll -> exact time.
+    seekTo(tQuant);
 
-            function onScroll() {
-              if (!duration) return;
-              if (!rAF) rAF = requestAnimationFrame(tick);
-            }
+    // call user update
+    try { onUpdate(p, tQuant); } catch (e) {}
 
-            function onResize() {
-              resizeCanvasToDisplaySize();
-              measure();
-              draw();
-            }
+    // draw fallback for browsers without RVFC (we still rely on seeked for frames)
+    // but ensure a draw each frame in case the browser's video element displays frame synchronously
+    if (typeof video.requestVideoFrameCallback !== 'function') {
+      draw();
+    }
 
-            function onLoadedMeta() {
-              duration = video.duration || 0;
-              if (duration === 0 || isNaN(duration) || !isFinite(duration)) {
-                console.warn('Invalid video duration, using fallback 1s');
-                duration = 1; // fallback for your 1s clips
-              }
+    rafId = requestAnimationFrame(tick);
+  }
 
-              // if you want to ensure the video is effectively "silent" during seeks
-              try { video.muted = true; } catch (e) {}
+  function startLoop() {
+    if (!rafId && visible) {
+      rafId = requestAnimationFrame(tick);
+      dbg('loop started');
+    }
+  }
+  function stopLoop() {
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+      dbg('loop stopped');
+    }
+  }
 
-              resizeCanvasToDisplaySize();
-              measure();
+  function onLoadedMeta() {
+    duration = video.duration || 0;
+    if (!duration || !isFinite(duration)) {
+      console.warn('Invalid video duration, falling back to 1s');
+      duration = 1;
+    }
+    video.pause(); // control time manually
 
-              video.pause();
-              doSeek(0);
+    resizeCanvasToDisplaySize();
+    measure();
+    // initial sync to 0
+    seekTo(0);
+    draw();
 
-              onReady({ duration, video, canvas });
-            }
+    // start things only if wrapper visible (io will start loop), otherwise wait
+    if (visible) {
+      startLoop();
+      startRVFC();
+    }
 
-            // Wire events
-            video.addEventListener('loadedmetadata', onLoadedMeta);
-            video.addEventListener('seeked', onSeeked);
-            window.addEventListener('scroll', onScroll, { passive: true });
-            window.addEventListener('resize', onResize);
+    try { onReady({ duration, video, canvas }); } catch (e) {}
+  }
 
-            // If metadata is already loaded, run handler immediately
-            if (video.readyState >= 1) onLoadedMeta();
-            else video.load();
+  // attach loadedmetadata
+  video.addEventListener('loadedmetadata', onLoadedMeta);
 
-            // initial measure
-            measure();
+  // if metadata already available
+  if (video.readyState >= 1) onLoadedMeta();
+  else try { video.load(); } catch (e) {}
 
-            return function cleanup() {
-              try { video.removeEventListener('loadedmetadata', onLoadedMeta); } catch (e) {}
-              try { video.removeEventListener('seeked', onSeeked); } catch (e) {}
-              try { window.removeEventListener('scroll', onScroll); } catch (e) {}
-              try { window.removeEventListener('resize', onResize); } catch (e) {}
-              if (rAF) cancelAnimationFrame(rAF);
-            };
-          };
+  // resize handling
+  window.addEventListener('resize', () => {
+    resizeCanvasToDisplaySize();
+    measure();
+    draw();
+  });
+
+  // expose a small debug method in case you want to poke from console
+  const api = {
+    stop() { stopLoop(); stopRVFC(); },
+    start() { startLoop(); startRVFC(); },
+    forceDraw() { draw(); },
+    debugOn() { return dbg('debug on'); },
+  };
+
+  // return cleanup function (same public shape as original)
+  return function cleanup() {
+    stopLoop();
+    stopRVFC();
+    try { io.disconnect(); } catch (e) {}
+    try { video.removeEventListener('loadedmetadata', onLoadedMeta); } catch (e) {}
+    try { window.removeEventListener('resize', resizeCanvasToDisplaySize); } catch (e) {}
+    dbg('cleanup done');
+    return api;
+  };
+};
+
+
+
+
 
 
           
