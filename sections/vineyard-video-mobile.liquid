@@ -111,12 +111,12 @@
 
   <script>
     (function () {
-      var root = document.getElementById("section-two-video-scrub-{{ section.id }}");
-      if (!root) return;
+      var rootThree = document.getElementById("section-two-video-scrub-{{ section.id }}");
+      if (!rootThree) return;
 
-      var mediaWrap = root.querySelector(".fratelli-video-scrub-two__media"); // pinned element
-      var videoEl = root.querySelector(".fratelli-video-scrub-two__video");
-      var overContent = root.querySelector("[data-over-content-two]");
+      var mediaWrapThree = rootThree.querySelector(".fratelli-video-scrub-two__media"); // pinned element
+      var videoElThree = rootThree.querySelector(".fratelli-video-scrub-two__video");
+      var overContentThree = rootThree.querySelector("[data-over-content-two]");
 
       if (!window.gsap || !window.ScrollTrigger) {
         console.warn("GSAP/ScrollTrigger not found. Make sure they are loaded in theme.liquid.");
@@ -125,26 +125,26 @@
       gsap.registerPlugin(ScrollTrigger);
 
       // Force consistent video height
-      try { videoEl.style.height = "100vh"; } catch (e) {}
+      try { videoElThree.style.height = "100vh"; } catch (e) {}
 
       // We'll overlay the content while the media is pinned so we can center it if needed.
       // Keep a fallback initialTop percent (where content sits before centering).
-      if (overContent) {
+      if (overContentThree) {
         // Set overlay styles (so it's visually above the video while pinned)
-        overContent.style.position = "absolute";
-        overContent.style.left = "0";
-        overContent.style.width = "100%";
-        overContent.style.zIndex = "2";
-        overContent.style.transform = "translateY(-50vh)";
+        overContentThree.style.position = "absolute";
+        overContentThree.style.left = "0";
+        overContentThree.style.width = "100%";
+        overContentThree.style.zIndex = "2";
+        overContentThree.style.transform = "translateY(-50vh)";
         // Initialize top (will be corrected on refresh)
       }
       // Helper: safe set currentTime (some browsers may throw if invalid)
       function setVideoTime(t) {
         try {
           // clamp t to [0, duration]
-          var dur = videoEl.duration || 0;
+          var dur = videoElThree.duration || 0;
           if (dur && isFinite(dur)) {
-            videoEl.currentTime = Math.max(0, Math.min(dur, t));
+            videoElThree.currentTime = Math.max(0, Math.min(dur, t));
           }
         } catch (e) {
           // ignore write errors (some mobile browsers restrict this in odd states)
@@ -153,10 +153,10 @@
 
       // Main ScrollTrigger: pin the wrapper and scrub progress 0..1
       var mainST = ScrollTrigger.create({
-        trigger: mediaWrap,
+        trigger: mediaWrapThree,
         start: "top top",
         end: "+=300%",
-        pin: mediaWrap,          // pin the wrapper (not the video)
+        pin: mediaWrapThree,          // pin the wrapper (not the video)
         pinSpacing: true,
         scrub: true,
         anticipatePin: 1,
@@ -166,29 +166,29 @@
           var p = self.progress; // 0..1 over the pinned area
 
           // If video duration is ready, map progress to currentTime
-          if (videoEl && !isNaN(videoEl.duration) && isFinite(videoEl.duration)) {
-            setVideoTime(p * videoEl.duration);
+          if (videoElThree && !isNaN(videoElThree.duration) && isFinite(videoElThree.duration)) {
+            setVideoTime(p * videoElThree.duration);
           }
         }
       });
 
       // Pause video initially and set time 0 when metadata is available
-      if (videoEl) {
+      if (videoElThree) {
         function ensureReady() {
-          try { videoEl.pause(); } catch (e) {}
-          try { videoEl.currentTime = 0; } catch (e) {}
+          try { videoElThree.pause(); } catch (e) {}
+          try { videoElThree.currentTime = 0; } catch (e) {}
           ScrollTrigger.refresh();
         }
-        if (videoEl.readyState >= 2 && !isNaN(videoEl.duration)) {
+        if (videoElThree.readyState >= 2 && !isNaN(videoElThree.duration)) {
           ensureReady();
         } else {
-          videoEl.addEventListener("loadedmetadata", ensureReady, { once: true });
+          videoElThree.addEventListener("loadedmetadata", ensureReady, { once: true });
         }
 
         // if reduced motion is preferred, do not animate video
         var prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         if (prefersReduced) {
-          try { videoEl.pause(); } catch (e) {}
+          try { videoElThree.pause(); } catch (e) {}
         }
       }
 
