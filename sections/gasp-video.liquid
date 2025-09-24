@@ -2,16 +2,12 @@
   Video Scrub (GSAP + ScrollTrigger)
   - Pin the media wrapper (stable element) when it reaches top of viewport
   - Scrub the child <video> element's currentTime using the scroll progress
-  - Implementation uses a canvas drawn from the <video> so scrubbing is more reliable across browsers
 {% endcomment %}
 
 <section id="section-video-scrub-{{ section.id }}" class="fratelli-video-scrub fratelli-video-scrub--{{ section.id }}">
   <div class="fratelli-video-scrub__inner">
     <!-- Pinned wrapper (we pin this) -->
     <div class="fratelli-video-scrub__media">
-      <!-- Canvas will display frames (visible). Video is source only (kept in DOM, visually hidden). -->
-      <canvas class="fratelli-video-scrub__canvas" aria-hidden="true"></canvas>
-
       <video
         class="fratelli-video-scrub__video"
         playsinline
@@ -47,27 +43,13 @@
     /* media wrapper */
     .fratelli-video-scrub__media { width: 100%; position: relative; overflow: hidden; }
 
-    /* canvas: visible surface, covers viewport */
-    .fratelli-video-scrub__canvas {
+    /* video: fill viewport, cover crop */
+    .fratelli-video-scrub__video {
       width: 100%;
       height: 100vh;       /* use 100vh (avoid 101vh which can confuse ScrollTrigger) */
       display: block;
       object-fit: cover;
       will-change: transform;
-      background: #000;
-    }
-
-    /* video: source only (keep in DOM so it can be seeked/decoded) */
-    .fratelli-video-scrub__video {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100vh;
-      opacity: 0; /* keep it accessible but invisible */
-      pointer-events: none;
-      z-index: -1;
-      object-fit: cover;
     }
 
     /* content starts in document flow; we'll overlay it via JS when needed */
@@ -128,14 +110,12 @@
   </style>
 
   <script>
-    
     (function () {
       var root = document.getElementById("section-video-scrub-{{ section.id }}");
       if (!root) return;
 
       var mediaWrap = root.querySelector(".fratelli-video-scrub__media"); // pinned element
       var videoEl = root.querySelector(".fratelli-video-scrub__video");
-      var canvasEl = root.querySelector(".fratelli-video-scrub__canvas");
       var overContent = root.querySelector("[data-over-content]");
 
       if (!window.gsap || !window.ScrollTrigger) {
@@ -144,7 +124,7 @@
       }
       gsap.registerPlugin(ScrollTrigger);
 
-      // Force consistent video height (keep as you had)
+      // Force consistent video height
       try { videoEl.style.height = "100vh"; } catch (e) {}
 
       // We'll overlay the content while the media is pinned so we can center it if needed.
@@ -166,196 +146,16 @@
         return Math.round(window.innerHeight * scrubMultiplier);
       }
 
-      // ========== Canvas-based scrubbing logic (replaces direct currentTime writes) ==========
-      // This keeps your ScrollTrigger usage but draws frames to canvas for consistent output.
-      (function canvasScrubSetup() {
-        if (!canvasEl || !videoEl) return;
-
-        var devicePR = Math.max(1, window.devicePixelRatio || 1);
-        var ctx = null;
-        var duration = 0;
-        var isSeeking = false;
-        var pendingTarget = null;
-        var lastRendered = -1;
-        var seekEpsilon = 0.02; // skip tiny seeks under 20ms
-
-        function setCanvasSize() {
-          // keep CSS sizing but scale internal buffer for crispness
-          var w = Math.max(1, Math.round(window.innerWidth));
-          var h = Math.max(1, Math.round(window.innerHeight));
-          canvasEl.style.width = w + "px";
-          canvasEl.style.height = h + "px";
-          canvasEl.width = Math.round(w * devicePR);
-          canvasEl.height = Math.round(h * devicePR);
-
-          ctx = canvasEl.getContext("2d");
-          // scale so we can draw in CSS pixels
-          ctx.setTransform(devicePR, 0, 0, devicePR, 0, 0);
-        }
-
-        function drawFrame() {
-          if (!ctx || !videoEl.videoWidth || !videoEl.videoHeight) return;
-          try {
-            var vw = videoEl.videoWidth;
-            var vh = videoEl.videoHeight;
-            var cw = canvasEl.width / devicePR;
-            var ch = canvasEl.height / devicePR;
-
-            // compute cover-style source rect (crop to cover)
-            var videoRatio = vw / vh;
-            var canvasRatio = cw / ch;
-            var sx = 0, sy = 0, sw = vw, sh = vh;
-
-            if (videoRatio > canvasRatio) {
-              // crop sides
-              sw = Math.round(vh * canvasRatio);
-              sx = Math.round((vw - sw) / 2);
-            } else {
-              // crop top/bottom
-              sh = Math.round(vw / canvasRatio);
-              sy = Math.round((vh - sh) / 2);
-            }
-
-            ctx.clearRect(0, 0, cw, ch);
-            ctx.drawImage(videoEl, sx, sy, sw, sh, 0, 0, cw, ch);
-            lastRendered = videoEl.currentTime || lastRendered;
-          } catch (e) {
-            // drawing may fail in some environments; ignore gracefully
-          }
-        }
-
-        // safe setter for currentTime with clamp
-        function safeSetTime(t) {
-          try {
-            if (!isFinite(t) || isNaN(t)) return;
-            videoEl.currentTime = Math.max(0, Math.min(duration || t, t));
-          } catch (e) {
-            // some mobile browsers may throw; ignore
-          }
-        }
-
-        // request a seek to a particular time (throttled via isSeeking + seeked event)
-        function requestSeek(targetTime) {
-          if (!isFinite(targetTime) || isNaN(targetTime)) return;
-          pendingTarget = Math.max(0, Math.min(duration || targetTime, targetTime));
-
-          if (isSeeking) return;
-
-          // skip if already close to target
-          if (Math.abs(pendingTarget - lastRendered) <= seekEpsilon) {
-            // draw current frame
-            drawFrame();
-            return;
-          }
-
-          try {
-            isSeeking = true;
-            safeSetTime(pendingTarget);
-            // when seek completes, "seeked" event will drawFrame
-          } catch (e) {
-            // fallback: attempt draw
-            isSeeking = false;
-            drawFrame();
-          }
-        }
-
-        // when a seek finishes, draw and handle any pending changes
-        videoEl.addEventListener("seeked", function () {
-          isSeeking = false;
-          drawFrame();
-          // if pendingTarget changed during seek and is sufficiently different, request again
-          if (pendingTarget !== null && Math.abs(pendingTarget - lastRendered) > seekEpsilon) {
-            setTimeout(function () {
-              if (!isSeeking) requestSeek(pendingTarget);
-            }, 0);
-          }
-        });
-
-        // on metadata, set up sizes + prime decoder
-        function onMeta() {
-          duration = videoEl.duration || 0;
-          setCanvasSize();
-
-          // attempt a quick play/pause to prime decoder (muted so most browsers allow)
-          videoEl.pause();
-          videoEl.play().then(function () {
-            videoEl.pause();
-            try { videoEl.currentTime = 0; } catch (e) {}
-            drawFrame();
-            ScrollTrigger.refresh();
-          }).catch(function () {
-            // play blocked; still try set time 0 and draw shortly after
-            try { videoEl.currentTime = 0; } catch (e) {}
-            setTimeout(function () {
-              drawFrame();
-              ScrollTrigger.refresh();
-            }, 60);
-          });
-        }
-
-        if (videoEl.readyState >= 2 && !isNaN(videoEl.duration)) {
-          onMeta();
-        } else {
-          videoEl.addEventListener("loadedmetadata", onMeta, { once: true });
-        }
-
-        // handle resize: update canvas buffer and refresh ScrollTrigger
-        var resizeTimer = null;
-        window.addEventListener("resize", function () {
-          clearTimeout(resizeTimer);
-          resizeTimer = setTimeout(function () {
-            setCanvasSize();
-            ScrollTrigger.refresh();
-          }, 120);
-        });
-
-        // expose draw helper if needed (for debugging)
-        root._fratelliVideoCanvas = {
-          draw: drawFrame,
-          setSize: setCanvasSize
-        };
-
-        // Replace the simple setVideoTime used originally with requestSeek+draw flow
-        // We'll still use your ScrollTrigger, so patch its onUpdate behavior below by
-        // creating a small wrapper that maps progress->time and requests seek.
-
-        // Create a "pass-through" ScrollTrigger like your original but we will not re-create it here.
-        // Instead, override ScrollTrigger.create call below to call requestSeek when needed.
-        // To keep your original structure unchanged, we'll create a small function that returns
-        // a callback to be used in onUpdate.
-        canvasScrubSetup.requestSeek = requestSeek;
-      })();
-
-      // Helper: safe set currentTime (kept for compatibility but route through canvas logic above)
+      // Helper: safe set currentTime (some browsers may throw if invalid)
       function setVideoTime(t) {
-        // If canvas-based routine is present use it
-        if (root._fratelliVideoCanvas && root._fratelliVideoCanvas.draw) {
-          // request a seek via the canvas setup
-          // guard: find the internal function we added
-          var req = (function findRequest() {
-            // canvasScrubSetup attached requestSeek to itself earlier as property
-            // but it's not globally accessible - attempt to access via closure fallback
-            // So use the canvas event approach: set video.currentTime and rely on seeked -> draw
-            try {
-              // if a direct requestSeek exists on the function object we created: use it
-              if (typeof canvasEl !== 'undefined' && canvasEl && canvasEl.tagName && window) {
-                // We attached request via closure earlier as canvasScrubSetup.requestSeek, but that's local.
-                // Fallback: write to videoEl.currentTime (will be handled by seeked listener in canvas setup).
-                try { videoEl.currentTime = t; } catch (e) {}
-                return;
-              }
-            } catch (e) {
-              try { videoEl.currentTime = t; } catch (e) {}
-            }
-          })();
-        } else {
-          // fallback: original simple implementation
-          try {
-            var dur = videoEl.duration || 0;
-            if (dur && isFinite(dur)) {
-              videoEl.currentTime = Math.max(0, Math.min(dur, t));
-            }
-          } catch (e) {}
+        try {
+          // clamp t to [0, duration]
+          var dur = videoEl.duration || 0;
+          if (dur && isFinite(dur)) {
+            videoEl.currentTime = Math.max(0, Math.min(dur, t));
+          }
+        } catch (e) {
+          // ignore write errors (some mobile browsers restrict this in odd states)
         }
       }
 
@@ -375,21 +175,7 @@
 
           // If video duration is ready, map progress to currentTime
           if (videoEl && !isNaN(videoEl.duration) && isFinite(videoEl.duration)) {
-            // use canvas-based setter where possible
-            var target = p * videoEl.duration;
-            // Prefer to set via safeSetTime handled inside our canvas code (which listens to 'seeked')
-            try {
-              // If the canvas-based requestSeek is available on the closure, use it
-              // Fallback to simple set
-              if (root._fratelliVideoCanvas && typeof videoEl.currentTime !== 'undefined') {
-                // Set currentTime -> canvas seek/draw flow will handle throttle and draw
-                try { videoEl.currentTime = target; } catch (e) { /* ignore */ }
-              } else {
-                setVideoTime(target);
-              }
-            } catch (e) {
-              setVideoTime(target);
-            }
+            setVideoTime(p * videoEl.duration);
           }
         }
       });

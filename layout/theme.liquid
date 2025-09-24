@@ -70,7 +70,7 @@
     smooth: true,
     duration: 1.2,                      // longer inertia -> cinematic feel
     easing: function (t) { return 1 - Math.pow(1 - t, 3); }, // easeOutCubic-like
-    wheelMultiplier: 0.7,               // lower = heavier feel
+    wheelMultiplier: 6,               // lower = heavier feel
     normalizeWheel: true,
     smoothTouch: true,                  // also smooth touch on devices
     direction: 'vertical',
@@ -82,7 +82,7 @@
     smooth: enableMobileSmoothing && !prefersReduced, // fallback to native if pref reduced or toggle off
     duration: 0.85,                     // shorter duration on phones so it feels responsive
     easing: function (t) { return 1 - Math.pow(1 - t, 3); },
-    wheelMultiplier: 0.9,               // mostly affects wheel/trackpad; phones use touch
+    wheelMultiplier: 6,               // mostly affects wheel/trackpad; phones use touch
     normalizeWheel: true,
     smoothTouch: true,                  // keep touch smoothing enabled for consistent feel
     direction: 'vertical',
