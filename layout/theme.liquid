@@ -346,81 +346,46 @@ window.FratelliGSAP.initVideoScrub = function (options) {
       } else {
         console.warn('GSAP not available. Some animations may not work.');
       }
-      // Initialize Lenis with dynamic smoothness based on scroll speed
+      // Initialize Lenis with minimal configuration
       const lenis = new Lenis({
-        duration: 0.8, // Base duration for smooth scrolling
+        duration: 0.6, // Smooth duration for video scrubbing
         easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // Smooth easing
-        smoothWheel: true,
-        smoothTouch: true,
-        touchMultiplier: 1.2,
+        smoothWheel: false, // Disable smooth wheel by default
+        smoothTouch: false, // Disable smooth touch by default
         infinite: false,
         gestureOrientation: 'vertical',
-        wheelMultiplier: 1.1,
-        normalizeWheel: true,
-        lerp: 0.08, // Base lerp value
+        wheelMultiplier: 1.0,
+        normalizeWheel: false,
+        lerp: 0.1, // Smooth lerp for video scrubbing
         syncTouch: true,
         syncTouchLerp: 0.1,
       });
 
-      // Track scroll velocity
-      let lastScrollY = 0;
-      let lastTimestamp = 0;
-      let velocity = 0;
-      const velocitySamples = [];
-      const MAX_SAMPLES = 5;
+      // Track if we're currently scrubbing
+      let isScrubbing = false;
 
-      // Function to calculate scroll velocity
-      function updateVelocity(scrollY, timestamp) {
-        const deltaY = scrollY - lastScrollY;
-        const deltaTime = timestamp - lastTimestamp;
-        
-        if (deltaTime > 0) {
-          const currentVelocity = Math.abs(deltaY) / deltaTime;
-          velocitySamples.push(currentVelocity);
-          
-          // Keep only the last few samples
-          if (velocitySamples.length > MAX_SAMPLES) {
-            velocitySamples.shift();
-          }
-          
-          // Calculate average velocity
-          velocity = velocitySamples.reduce((sum, v) => sum + v, 0) / velocitySamples.length;
-          
-          // Update Lenis settings based on velocity
-          updateLenisSmoothness(velocity);
+      // Function to enable smooth scroll for video scrubbing
+      function enableVideoScrubbing() {
+        if (!isScrubbing) {
+          isScrubbing = true;
+          lenis.options.smoothWheel = true;
+          lenis.options.smoothTouch = true;
+          lenis.options.lerp = 0.1;
+          lenis.options.duration = 0.6;
         }
-        
-        lastScrollY = scrollY;
-        lastTimestamp = timestamp;
       }
 
-      // Update Lenis smoothness based on scroll velocity
-      function updateLenisSmoothness(vel) {
-        // These values can be adjusted based on testing
-        const fastThreshold = 10; // pixels/ms
-        const slowThreshold = 1;  // pixels/ms
-        
-        if (vel > fastThreshold) {
-          // Fast scrolling - less smoothing for responsiveness
-          lenis.options.duration = 0.3;
-          lenis.options.lerp = 0.15;
-        } else if (vel > slowThreshold) {
-          // Medium speed - balanced smoothing
-          lenis.options.duration = 0.5;
-          lenis.options.lerp = 0.08;
-        } else {
-          // Slow or no movement - more smoothing for precision
-          lenis.options.duration = 0.8;
-          lenis.options.lerp = 0.04;
-        }
+      // Function to disable smooth scroll when not scrubbing
+      function disableVideoScrubbing() {
+        isScrubbing = false;
+        lenis.options.smoothWheel = false;
+        lenis.options.smoothTouch = false;
       }
 
       // Handle resize events
       function handleResize() {
-        // Reset velocity tracking on resize
-        velocitySamples.length = 0;
-        lastScrollY = window.scrollY;
-        lastTimestamp = performance.now();
+        // Reset scroll position tracking
+        lenis.raf(performance.now());
       }
 
       // Initial setup
@@ -428,12 +393,15 @@ window.FratelliGSAP.initVideoScrub = function (options) {
       window.addEventListener('resize', handleResize, { passive: true });
       window.addEventListener('orientationchange', handleResize, { passive: true });
 
-      // Use requestAnimationFrame to continuously update the scroll and track velocity
+      // Simple RAF loop for Lenis
       function raf(time) {
-        updateVelocity(window.scrollY, time);
         lenis.raf(time);
         requestAnimationFrame(raf);
       }
+
+      // Listen for video scrub start/end events
+      document.addEventListener('videoScrubStart', enableVideoScrubbing);
+      document.addEventListener('videoScrubEnd', disableVideoScrubbing);
 
       // Start the animation loop
       requestAnimationFrame(raf);
