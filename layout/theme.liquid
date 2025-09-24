@@ -346,8 +346,34 @@ window.FratelliGSAP.initVideoScrub = function (options) {
       } else {
         console.warn('GSAP not available. Some animations may not work.');
       }
-      // Initialize Lenis
-      const lenis = new Lenis();
+      // Initialize Lenis with optimized settings for all devices
+      const lenis = new Lenis({
+        duration: 1.2,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smoothWheel: true,
+        smoothTouch: false, // Disable touch smoothing as it can cause issues on mobile
+        touchMultiplier: 1.5, // Smoother touch scrolling
+        infinite: false,
+        gestureOrientation: 'vertical',
+        wheelMultiplier: 1.1, // Smoother wheel scrolling
+        normalizeWheel: true, // Better cross-browser wheel behavior
+        lerp: 0.1, // Smoother animation
+        syncTouch: true, // Better touch sync
+        syncTouchLerp: 0.1, // Smoother touch sync
+      });
+
+      // Handle resize events
+      function handleResize() {
+        // Adjust settings based on device type
+        const isMobile = window.innerWidth < 768;
+        lenis.options.smoothWheel = !isMobile; // Disable smooth wheel on mobile
+        lenis.options.smoothTouch = false; // Keep touch smoothing off as it can cause issues
+      }
+
+      // Initial setup
+      handleResize();
+      window.addEventListener('resize', handleResize, { passive: true });
+      window.addEventListener('orientationchange', handleResize, { passive: true });
 
       // Use requestAnimationFrame to continuously update the scroll
       function raf(time) {
@@ -355,7 +381,18 @@ window.FratelliGSAP.initVideoScrub = function (options) {
         requestAnimationFrame(raf);
       }
 
+      // Start the animation loop
       requestAnimationFrame(raf);
+
+      // Handle mobile touch events better
+      if ('ontouchstart' in window) {
+        // Add passive: true for better touch performance
+        document.addEventListener('touchstart', () => {}, { passive: true });
+        document.addEventListener('touchmove', () => {}, { passive: true });
+      }
+
+      // Fix for iOS rubber-banding
+      document.body.style.overscrollBehavior = 'none';
     </script>
     
     <link rel="stylesheet" href="{{ 'theme.css' | asset_url }}">
