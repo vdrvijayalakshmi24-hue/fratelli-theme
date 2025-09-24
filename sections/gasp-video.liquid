@@ -4,7 +4,7 @@
   - Scrub the child <video> element's currentTime using the scroll progress
 {% endcomment %}
 
-<section id="section-one-video-scrub-{{ section.id }}" class="fratelli-video-scrub fratelli-video-scrub--{{ section.id }}">
+<section id="section-video-scrub-{{ section.id }}" class="fratelli-video-scrub fratelli-video-scrub--{{ section.id }}">
   <div class="fratelli-video-scrub__inner">
     <!-- Pinned wrapper (we pin this) -->
     <div class="fratelli-video-scrub__media">
@@ -20,7 +20,7 @@
     </div>
 
     <!-- Content area -->
-    <div class="fratelli-video-scrub__content" data-over-content-one>
+    <div class="fratelli-video-scrub__content" data-over-content>
       <div class="fratelli-video-scrub__container" id="jason-{{ section.id }}">
         <div class="fratelli-video-scrub__content-inner">
           <h1 id="jason-h1-{{ section.id }}">Explore Range of Fratelli</h1>
@@ -111,12 +111,12 @@
 
   <script>
     (function () {
-      var root = document.getElementById("section-one-video-scrub-{{ section.id }}");
+      var root = document.getElementById("section-video-scrub-{{ section.id }}");
       if (!root) return;
 
       var mediaWrap = root.querySelector(".fratelli-video-scrub__media"); // pinned element
       var videoEl = root.querySelector(".fratelli-video-scrub__video");
-      var overContent = root.querySelector("[data-over-content-one]");
+      var overContent = root.querySelector("[data-over-content]");
 
       if (!window.gsap || !window.ScrollTrigger) {
         console.warn("GSAP/ScrollTrigger not found. Make sure they are loaded in theme.liquid.");
