@@ -99,7 +99,7 @@ window.FratelliGSAP.initVideoScrub = function (options) {
   // constants
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   const isAndroidChrome = /Android.*Chrome\/[.0-9]*/.test(navigator.userAgent);
-  const STEP = isMobile ? 1 / 120 : 1 / 60; // 120fps for mobile, 60fps for desktop
+  const STEP = 1 / 60; // 120fps for mobile, 60fps for desktop
   
   // Direct scroll connection for Android Chrome
   let lastScrollTime = 0;
