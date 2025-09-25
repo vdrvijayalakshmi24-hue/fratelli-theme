@@ -1,142 +1,45 @@
 {% comment %}
-sections/scrolly-video-with-content.liquid
-- Hard-coded scrolly-video scrub section (manual scroll mapping)
-- Includes content area (jason) + GSAP ScrollTrigger animations copied from your code
-- No schema/settings (everything hard-coded)
-- Drop into sections/ and add to a page
+sections/scrolly-video-fixed-2.liquid
+Hard-coded Shopify section that scrubs video on scroll using scrolly-video,
+but with manual scroll -> progress mapping to avoid theme/positioning issues.
+
+Drop into sections/ and add to a page.
 {% endcomment %}
 
-<section id="scrolly-video-with-content-section" class="scrolly-video-with-content-section">
+<section id="scrolly-video-fixed-2-section" class="scrolly-video-fixed-2-section">
   <style>
-    /* ---------------- Layout / scrub section (TRACK) ---------------- */
-    .svwc-wrapper {
+    /* Parent section provides the scroll track */
+    .scrolly-video-fixed-2-section {
+      width: 100%;
+      /* Increase track if you want slower scrub per scroll distance */
+      height: 200vh; /* 3 viewports of vertical scroll */
       position: relative;
-      height: 300vh; /* total track height -> controls scrub distance */
-      width: 100%;
-      overflow: visible;
-      box-sizing: border-box;
       background: #000;
     }
 
-    .svwc-pin {
-      position: absolute; /* JS may switch between absolute/fixed as needed */
+    /* Sticky wrapper that stays 100vh in viewport */
+    .scrolly-video-fixed-2-wrapper {
+      position: sticky;
       top: 0;
-      left: 0;
-      right: 0;
-      height: 100vh;
+      height: 100vh; /* hard-coded 100vh video */
       width: 100%;
-      z-index: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       overflow: hidden;
-      display: block;
+      z-index: 1;
       background: #000;
     }
 
-    .svwc-canvas {
+    /* Mount point for the library */
+    #scrolly-video-fixed-2-container {
       width: 100%;
       height: 100%;
-      display: block;
-      object-fit: cover;
-      background: #000;
-      image-rendering: auto;
-    }
-
-    .svwc-video-decoder {
-      position: absolute;
-      opacity: 0;
-      pointer-events: none;
-      width: 1px;
-      height: 1px;
-      left: -9999px;
-      top: -9999px;
-    }
-
-    .svwc-spacer { height: 1px; }
-
-    /* ---------------- Content area (copied from your snippet) ---------------- */
-    .svwc-content {
       position: relative;
-      z-index: 10;
-      box-sizing: border-box;
-      width: 100%;
-      overflow: hidden;
-      padding: 0 1.5rem;
-      background: linear-gradient(199.57deg, #515D47 0%, #4E5B45 8.61%, #45563F 17.21%, #3A5039 25.82%, #324936 34.42%, #2C4234 43.03%, #2C4234 51.63%);
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 100%);
-      mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%);
-      box-sizing: border-box;
-      padding: 0 2rem;
     }
 
-    .jason {
-      position: relative;
-      z-index: 10;
-      display: flex;
-      flex-direction: column;
-      gap: 1.25rem;
-      overflow-x: hidden;
-      width: 100vw;
-      box-sizing: border-box;
-      color: #FFFFF8;
-      transform: translateY(40px); /* initial state same as original */
-      opacity: 0;                  /* initial state */
-    }
-
-    @media (min-width: 1024px) {
-      .jason { flex-direction: row; padding-left: 10rem; }
-    }
-
-    .jason-content {
-      max-width: 56rem;
-      margin-bottom: 2.5rem;
-    }
-
-    .jason h1 {
-      margin-top: 6rem;
-      font-family: "Utile", sans-serif;
-      text-transform: uppercase;
-      margin-bottom: 2.5rem;
-      color: #F4CF80;
-      font-size: 44px;
-      letter-spacing: 0;
-    }
-
-    .jason h2 {
-      font-family: "Playfair Display", serif;
-      margin-bottom: 1.75rem;
-      padding-right: 5rem;
-      color: #FFFFF8;
-      font-size: 32px;
-      font-style: italic;
-      letter-spacing: -0.06em;
-    }
-
-    .jason p {
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      padding-right: 7rem;
-      color: #FFFFF8;
-      font-size: 20px;
-      letter-spacing: -0.04em;
-    }
-
-    .explore-btn {
-      background: #fff;
-      color: #000;
-      border: none;
-      padding: 0.625rem 1.25rem;
-      border-radius: 20px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .full-image {
-      width: 100%;
-      height: 100vh;
-      object-fit: cover;
-      display: block;
-    }
-
-    /* Loading text */
-    .svwc-loading {
+    /* Loading label */
+    .scrolly-video-fixed-2-loading {
       position: absolute;
       left: 50%;
       top: 50%;
@@ -148,7 +51,8 @@ sections/scrolly-video-with-content.liquid
       opacity: 0.95;
     }
 
-    .svwc-overlay-text {
+    /* overlay text */
+    .scrolly-video-fixed-2-overlay {
       position: absolute;
       left: 0;
       right: 0;
@@ -161,220 +65,78 @@ sections/scrolly-video-with-content.liquid
       z-index: 60;
     }
 
-    .svwc-overlay-text .text { color:#fff; font-size:22px; text-shadow:0 6px 18px rgba(0,0,0,0.6); }
+    .scrolly-video-fixed-2-overlay .text {
+      color: #ffffff;
+      text-shadow: 0 6px 18px rgba(0,0,0,0.6);
+      font-size: 22px;
+      max-width: 90%;
+      text-align: center;
+    }
 
     @media (max-width: 768px) {
-      .svwc-overlay-text .text { font-size:16px; }
-      .jason h1 { font-size: 28px; }
-      .jason h2 { font-size: 20px; }
-      .jason p { font-size: 16px; padding-right: 1rem; }
+      .scrolly-video-fixed-2-overlay .text { font-size: 16px; }
+    }
+
+    /* Ensure no global overflow:hidden breaks sticky */
+    html, body {
+      /* don't force these in your theme but if sticky still fails, check if theme's CSS
+         sets 'overflow' on html/body or parent wrappers. */
     }
   </style>
 
-  <!-- ========== Scrub section (canvas + hidden video) ========== -->
-  <section class="svwc-wrapper" id="svwc-wrapper">
-    <div class="svwc-pin" id="svwc-pin">
-      <canvas id="svwc-canvas" class="svwc-canvas" role="img" aria-label="Video scrub"></canvas>
+  <div class="scrolly-video-fixed-2-wrapper">
+    <div id="scrolly-video-fixed-2-container"></div>
 
-      <!-- hidden video used for frame seek/draw -->
-      <video id="svwc-video" class="svwc-video-decoder" muted playsinline preload="auto" webkit-playsinline x-webkit-airplay="allow">
-        <source src="https://cdn.shopify.com/videos/c/o/v/aa8ea38fecb6431ebc55c842becc04eb.mp4" type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
+    <div class="scrolly-video-fixed-2-loading" id="scrolly-video-fixed-2-loading">
+      Loading video...
     </div>
 
-    <div class="svwc-spacer" aria-hidden="true"></div>
-  </section>
-
-  <!-- ========== Content area (copied) ========== -->
-  <section class="svwc-content" id="svwc-content">
-    <div class="jason" id="svwc-jason">
-      <div class="jason-content">
-        <h1 id="svwc-h1">Explore Range of Fratelli</h1>
-        <h2 id="svwc-h2">From Akluj's Soil</h2>
-        <p id="svwc-p">
-          Their hands don't just plant vines. they planted a vision. they dont dont follow europe. they carved india into every bottle.
-        </p>
-
-        <div style="margin-top: 1.25rem;">
-          <button type="button" class="explore-btn" id="svwc-btn">Explore</button>
-        </div>
-      </div>
+    <div class="scrolly-video-fixed-2-overlay">
+      <div class="text">Scroll to scrub the video</div>
     </div>
-  </section>
+  </div>
 
-  <!-- ------------- scripts ------------- -->
-  <!-- scrolly-video lib (we use it only for setVideoPercentage if available;
-       but the manual currentTime fallback is included) -->
+  <!-- scrolly-video library from CDN -->
   <script defer src="https://cdn.jsdelivr.net/npm/scrolly-video@latest/dist/scrolly-video.js"></script>
-
-  <!-- GSAP + ScrollTrigger CDNs loaded dynamically by script below (only once) -->
 
   <script>
     (function () {
-      // Elements
-      var wrapper = document.getElementById('svwc-wrapper');
-      var pin = document.getElementById('svwc-pin');
-      var canvas = document.getElementById('svwc-canvas');
-      var video = document.getElementById('svwc-video');
-      var content = document.getElementById('svwc-content');
-      var jason = document.getElementById('svwc-jason');
-      var loadingEl = null;
+      // Hard-coded video url
+      var VIDEO_SRC = 'https://cdn.shopify.com/videos/c/o/v/aa8ea38fecb6431ebc55c842becc04eb.mp4';
+      var CONTAINER_ID = 'scrolly-video-fixed-2-container';
+      var LOADING_ID = 'scrolly-video-fixed-2-loading';
+      var SECTION_ID = 'scrolly-video-fixed-2-section';
 
-      if (!wrapper || !pin || !canvas || !video || !content || !jason) {
-        console.warn('svwc: required elements missing');
-        return;
-      }
+      var loadingEl = document.getElementById(LOADING_ID);
+      var sectionEl = document.getElementById(SECTION_ID);
+      var containerEl = document.getElementById(CONTAINER_ID);
 
-      // create a small loading indicator piece
-      loadingEl = document.createElement('div');
-      loadingEl.className = 'svwc-loading';
-      loadingEl.id = 'svwc-loading';
-      loadingEl.textContent = 'Loading video...';
-      pin.appendChild(loadingEl);
-
-      var ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
-
-      // Scrolly-video instance (optional) — we'll prefer setVideoPercentage if available
+      // library instance (populated after init)
       var scrollyInstance = null;
 
-      // state
-      var duration = 0;
-      var startY = 0;
-      var endY = 0;
-      var seeking = false;
-      var pending = null;
-      var rAF = 0;
-
-      // helper
-      function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
-
-      /* ---------- pin helpers (copied logic) ---------- */
-      function setAbsoluteAt(y) {
-        pin.style.position = 'absolute';
-        pin.style.top = y + 'px';
-        pin.style.left = '0';
-        pin.style.right = '0';
-        pin.style.height = '100vh';
-        pin.style.width = '100%';
-      }
-
-      function setFixedTop() {
-        pin.style.position = 'fixed';
-        pin.style.top = '0';
-        pin.style.left = '0';
-        pin.style.right = '0';
-        pin.style.height = '100vh';
-        pin.style.width = '100%';
-      }
-
-      function updatePin() {
-        var rect = wrapper.getBoundingClientRect();
-        var vh = window.innerHeight || document.documentElement.clientHeight;
-        if (rect.top > 0) {
-          setAbsoluteAt(0);
-          return;
-        }
-        if (rect.bottom <= vh) {
-          setAbsoluteAt(wrapper.offsetHeight - vh);
-          return;
-        }
-        setFixedTop();
-      }
-
-      function measure() {
-        var rect = wrapper.getBoundingClientRect();
-        var pageY = window.pageYOffset || document.documentElement.scrollTop || 0;
-        startY = pageY + rect.top;
-        endY = startY + wrapper.offsetHeight - window.innerHeight;
-        updatePin();
-      }
-
-      function drawVideoFrame() {
-        try { ctx.drawImage(video, 0, 0, canvas.width, canvas.height); } catch (e) {}
-      }
-
-      function doSeek(t) {
-        seeking = true;
-        try {
-          if (typeof video.fastSeek === 'function') video.fastSeek(t);
-          else video.currentTime = t;
-        } catch (e) {
-          seeking = false;
-        }
-      }
-
-      function onSeeked() {
-        drawVideoFrame();
-        if (pending != null) {
-          var next = pending;
-          pending = null;
-          doSeek(next);
-        } else {
-          seeking = false;
-        }
-      }
-
-      function onScrollTick() {
-        rAF = 0;
-        var pageY = window.pageYOffset || document.documentElement.scrollTop || 0;
-        var prog = (pageY - startY) / Math.max(1, endY - startY);
-        var p = clamp(prog, 0, 1);
-        var tRaw = p * duration;
-        var STEP = 1 / 30;
-        var t = clamp(Math.round(tRaw / STEP) * STEP, 0, Math.max(0, duration - 1e-6));
-
-        // First try to use scrollyInstance.setVideoPercentage if available for smoother WebCodecs handling
-        if (scrollyInstance && typeof scrollyInstance.setVideoPercentage === 'function') {
-          try {
-            scrollyInstance.setVideoPercentage(p);
-          } catch (e) {
-            // fallback to seek
-            if (!seeking) doSeek(t);
-            else pending = t;
+      // defensive timeout for script load
+      function whenLibraryReady(cb) {
+        var tries = 0;
+        (function waitLoop() {
+          if (typeof ScrollyVideo !== 'undefined') return cb();
+          tries += 1;
+          if (tries > 200) { // ~10s at 50ms intervals
+            console.error('scrolly-video script did not load');
+            if (loadingEl) loadingEl.textContent = 'Video library failed to load';
+            return;
           }
-        } else {
-          if (!seeking) doSeek(t);
-          else pending = t;
-        }
-
-        updatePin();
+          setTimeout(waitLoop, 50);
+        })();
       }
 
-      function onScroll() { if (!duration) return; if (!rAF) rAF = requestAnimationFrame(onScrollTick); }
-
-      function onResize() {
-        // keep canvas sized to the playback resolution (fallback to element size)
-        canvas.width = video.videoWidth || canvas.clientWidth || window.innerWidth;
-        canvas.height = video.videoHeight || canvas.clientHeight || window.innerHeight;
-        measure();
-        drawVideoFrame();
-      }
-
-      function onLoadedMeta() {
-        duration = video.duration || 0;
-        onResize();
-        // attempt to prime video frames (play/pause) so seeking is ready
-        try {
-          var p = video.play();
-          if (p && typeof p.then === 'function') {
-            p.then(function(){ try{ video.pause(); }catch(e){}; }).catch(function(){});
-          }
-        } catch (e) {}
-        // initial seek to 0
-        doSeek(0);
-        if (loadingEl) loadingEl.style.display = 'none';
-      }
-
-      // init scrolly-video instance but disable its sticky/trackScroll to avoid conflicts
-      function initScrollyLib() {
-        if (typeof ScrollyVideo === 'undefined') return;
+      // init lib with minimal options (we won't rely on its trackScroll/sticky)
+      function initScrollyVideo() {
         try {
           scrollyInstance = new ScrollyVideo({
-            scrollyVideoContainer: canvas.id,
-            src: video.querySelector('source') ? video.querySelector('source').src : null,
-            sticky: false,
-            trackScroll: false,
+            scrollyVideoContainer: CONTAINER_ID,
+            src: VIDEO_SRC,
+            sticky: false,      // disable library sticky so we handle scroll mapping ourselves
+            trackScroll: false, // disable library's internal scroll tracking
             cover: true,
             full: false,
             transitionSpeed: 8,
@@ -382,140 +144,113 @@ sections/scrolly-video-with-content.liquid
             useWebCodecs: true,
             debug: false,
             onReady: function(inst) {
-              // store instance reference and hide loader if not already hidden
-              scrollyInstance = inst;
+              // hide loading
               if (loadingEl) loadingEl.style.display = 'none';
-              // expose for debugging
-              window._svwc_scrolly = scrollyInstance;
+              console.info('scrolly-video ready', inst);
+            },
+            onChange: function(pct) {
+              // library-level change, optional
             }
           });
-        } catch (e) {
-          console.warn('svwc: scrolly-video init failed, will fallback to native seeking', e);
+
+          // expose for debugging
+          window._scrollyVideoFixed2 = scrollyInstance;
+
+          // if scrollyInstance has setVideoPercentage method, we'll use it below.
+          if (typeof scrollyInstance.setVideoPercentage !== 'function') {
+            console.warn('scrolly-video instance missing setVideoPercentage — attempting fallback to setVideoProgress / setPercentage');
+          }
+        } catch (err) {
+          console.error('scrolly-video init error', err);
+          if (loadingEl) loadingEl.textContent = 'Video failed to initialize';
         }
       }
 
-      // event wiring
-      video.addEventListener('loadedmetadata', onLoadedMeta);
-      video.addEventListener('seeked', onSeeked);
-      window.addEventListener('scroll', onScroll, { passive: true });
-      window.addEventListener('resize', onResize);
+      // calculate scroll progress (0..1) for this section and call instance setter
+      var ticking = false;
+      function updateProgress() {
+        ticking = false;
+        if (!sectionEl || !scrollyInstance) return;
 
-      if (video.readyState >= 1) onLoadedMeta();
-      else try { video.load(); } catch (e) {}
+        var rect = sectionEl.getBoundingClientRect();
+        var vpH = window.innerHeight || document.documentElement.clientHeight;
 
-      // small measure retries (copied)
-      setTimeout(measure, 50);
-      setTimeout(function(){ if (!endY || endY === 0) measure(); }, 300);
+        // We want the progress to be 0 when the top of section enters the viewport,
+        // and 1 when we've scrolled through (sectionHeight - viewportHeight).
+        // Using section.scrollHeight minus viewport height gives the total track.
+        var sectionHeight = sectionEl.offsetHeight;
+        var maxScroll = Math.max(sectionHeight - vpH, 1); // avoid division by 0
+        // compute how many pixels we've scrolled into the section:
+        // when section is at top, pageYOffset + sectionTop = currentScrollPosition
+        // simplest: compute distance from top of section to top of viewport:
+        var scrolledInto = Math.min(Math.max(vpH - rect.top, 0), vpH + maxScroll); // clamp
 
-      /* ----------------- GSAP + ScrollTrigger content animation ----------------- */
-      // loadScript helper - avoids adding duplicate scripts
-      function loadScriptOnce(src) {
-        return new Promise(function (resolve, reject) {
-          if (document.querySelector('script[src="' + src + '"]')) return resolve();
-          var s = document.createElement('script');
-          s.src = src;
-          s.onload = resolve;
-          s.onerror = reject;
-          document.head.appendChild(s);
-        });
-      }
+        // better: compute exact top offset relative to document:
+        var docTop = window.pageYOffset || document.documentElement.scrollTop;
+        var sectionTop = docTop + rect.top;
+        var current = docTop - sectionTop + 0; // pixels scrolled within section
+        // clamp current to 0..maxScroll
+        current = Math.max(0, Math.min(current, maxScroll));
 
-      var GSAP_CDN = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js";
-      var SCROLLTRIGGER_CDN = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js";
+        var progress = current / maxScroll;
+        progress = Math.max(0, Math.min(1, progress)); // safety clamp
 
-      function initGSAPContent() {
-        if (!window.gsap || !window.ScrollTrigger) {
-          console.warn('svwc: GSAP/ScrollTrigger not available');
-          return;
-        }
+        // call library setter. prefer setVideoPercentage API
         try {
-          gsap.registerPlugin(ScrollTrigger);
-
-          // initial style - same as original logic
-          var hasImage = !!content.querySelector('.full-image');
-          var initialMargin = hasImage ? '-15vh' : '-62vh';
-          try { content.style.marginTop = initialMargin; } catch (e) {}
-
-          // set jason starting state inline to avoid CSS conflict
-          try { gsap.set(jason, { y: 40, opacity: 0 }); } catch (e) {}
-
-          // animate jason into place while scrolling - same trigger settings as original
-          try {
-            gsap.to(jason, {
-              y: 0,
-              opacity: 1,
-              duration: 1,
-              ease: "power1.inOut",
-              scrollTrigger: {
-                trigger: content,
-                start: "top 90%",
-                end: "100% center",
-                scrub: 2,
-                // markers: true // uncomment to debug
-              }
-            });
-          } catch (e) {
-            console.warn('svwc: jason animation error', e);
+          if (typeof scrollyInstance.setVideoPercentage === 'function') {
+            scrollyInstance.setVideoPercentage(progress);
+          } else if (typeof scrollyInstance.setVideoProgress === 'function') {
+            scrollyInstance.setVideoProgress(progress);
+          } else if (typeof scrollyInstance.setPercentage === 'function') {
+            scrollyInstance.setPercentage(progress);
+          } else if (scrollyInstance.video && typeof scrollyInstance.video.currentTime !== 'undefined') {
+            // last resort: set currentTime proportionally (may be choppy depending on encoding)
+            var dur = scrollyInstance.video.duration || 1;
+            scrollyInstance.video.currentTime = progress * dur;
+          } else {
+            // nothing we can call
           }
         } catch (e) {
-          console.warn('svwc: GSAP init error', e);
+          console.error('Error setting video percentage', e);
+        }
+
+        // debug: one console.info every ~20 frames to avoid spam
+        if (!updateProgress._ctr) updateProgress._ctr = 0;
+        updateProgress._ctr += 1;
+        if (updateProgress._ctr % 20 === 0) {
+          console.debug('scrolly progress', progress);
         }
       }
 
-      // load GSAP+ScrollTrigger then init
-      if (window.gsap && window.ScrollTrigger) {
-        initGSAPContent();
-      } else {
-        Promise.resolve()
-          .then(function(){ return loadScriptOnce(GSAP_CDN); })
-          .then(function(){ return loadScriptOnce(SCROLLTRIGGER_CDN); })
-          .then(function(){ setTimeout(initGSAPContent, 40); })
-          .catch(function(err){ console.error('svwc: Failed to load GSAP', err); });
-      }
-
-      // Try to init scrolly lib when ready (doesn't block)
-      (function waitForLib() {
-        if (typeof ScrollyVideo === 'undefined') {
-          setTimeout(waitForLib, 50);
-          return;
-        }
-        initScrollyLib();
-      })();
-
-      // RAF-driven scroll handler: ensure initial paint
-      var ticking = false;
-      function rafLoop() {
+      // RAF-driven scroll handler to reduce layout thrashing
+      function onScroll() {
         if (!ticking) {
-          window.requestAnimationFrame(function() {
-            if (duration) onScrollTick();
-            ticking = false;
-          });
+          window.requestAnimationFrame(updateProgress);
           ticking = true;
         }
       }
-      // also ensure initial progress update
-      window.addEventListener('load', function(){ setTimeout(onScroll, 100); });
 
-      /* ----------------- Cleanup for SPA / Shopify editor ----------------- */
-      function cleanup() {
-        try { video.removeEventListener('loadedmetadata', onLoadedMeta); } catch(e) {}
-        try { video.removeEventListener('seeked', onSeeked); } catch(e) {}
-        try { window.removeEventListener('scroll', onScroll); } catch(e) {}
-        try { window.removeEventListener('resize', onResize); } catch(e) {}
-        if (rAF) cancelAnimationFrame(rAF);
-        if (window.gsap && window.ScrollTrigger) {
-          try { ScrollTrigger.getAll().forEach(function(t){ t.kill(); }); } catch(e) {}
-        }
+      // wire events
+      function wireScroll() {
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll, { passive: true });
+        // initial call to set correct position
+        onScroll();
       }
 
-      // Shopify section lifecycle events — if you use in theme editor they will clean up
-      if (window.Shopify && window.Shopify.designMode) {
-        window.addEventListener('shopify:section:unload', cleanup);
-        window.addEventListener('shopify:section:load', function(){ setTimeout(measure, 50); });
-      }
-      window.addEventListener('pagehide', cleanup);
-      window.addEventListener('beforeunload', cleanup);
+      // bootstrap
+      whenLibraryReady(function() {
+        initScrollyVideo();
+        wireScroll();
+      });
 
+      // safety: if DOMContentLoaded hasn't fired, init when ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+          // trigger an initial progress update after load
+          setTimeout(onScroll, 50);
+        });
+      }
     })();
   </script>
 </section>
