@@ -1,14 +1,14 @@
 {% comment %}
-sections/scrolly-video-two-fixed-2.liquid
+sections/scrolly-video-fixed-2.liquid
 - Scrolly video (library-driven playback) with manual scroll->progress mapping.
 - Adds content block below the video; when scrub >= 70% the content becomes fixed to viewport bottom.
 Drop into sections/ and add to a page.
 {% endcomment %}
 
-<section id="scrolly-video-two-fixed-2-section" class="scrolly-video-two-fixed-2-section">
+<section id="scrolly-video-fixed-2-section" class="scrolly-video-fixed-2-section">
   <style>
     /* Parent section provides the scroll track */
-    .scrolly-video-two-fixed-2-section {
+    .scrolly-video-fixed-2-section {
       width: 100%;
       /* Increase track if you want slower scrub per scroll distance */
       height: 200vh; /* adjust as needed */
@@ -18,8 +18,14 @@ Drop into sections/ and add to a page.
       contain: layout paint;
     }
 
+    @media (min-width: 1024px) {
+      .scrolly-video-fixed-2-section {
+        height: 400vh;
+      }
+    }
+
     /* Sticky wrapper that stays 100vh in viewport */
-    .scrolly-video-two-fixed-2-wrapper {
+    .scrolly-video-fixed-2-wrapper {
       position: sticky;
       top: 0;
       height: 100vh;
@@ -36,7 +42,7 @@ Drop into sections/ and add to a page.
     }
 
     /* Mount point for the library */
-    #scrolly-video-two-fixed-2-container {
+    #scrolly-video-fixed-2-container {
       width: 100%;
       height: 100%;
       position: relative;
@@ -46,13 +52,13 @@ Drop into sections/ and add to a page.
     }
 
     /* Also promote immediate children (video/canvas) created by the library */
-    #scrolly-video-two-fixed-2-container > * {
+    #scrolly-video-fixed-2-container > * {
       transform: translateZ(0);
       will-change: transform;
     }
 
     /* Loading label */
-    .scrolly-video-two-fixed-2-loading {
+    .scrolly-video-fixed-2-loading {
       position: absolute;
       left: 50%;
       top: 50%;
@@ -67,7 +73,7 @@ Drop into sections/ and add to a page.
 
     /* --- Content, hidden by default, anchored to section bottom --- */
     /* Will become visible and styled at >=70% progress */
-    .fratelli-video-two-scrub__content {
+    .fratelli-video-scrub__content {
       position: absolute;
       left: 0;
       right: 0;
@@ -86,16 +92,16 @@ Drop into sections/ and add to a page.
       transition: opacity 200ms ease, transform 240ms ease-out, visibility 0s linear 220ms;
     }
 
-    .fratelli-video-two-scrub__content-inner { max-width: 56rem; margin-bottom: 2.5rem; }
+    .fratelli-video-scrub__content-inner { max-width: 56rem; margin-bottom: 2.5rem; }
 
-    .fratelli-video-two-scrub__container h1 {
+    .fratelli-video-scrub__container h1 {
       font-family: "Utile", sans-serif;
       text-transform: uppercase;
       color: #F4CF80;
       font-size: 48px;
       margin-top: 6rem;
     }
-    .fratelli-video-two-scrub__container h2 {
+    .fratelli-video-scrub__container h2 {
       font-family: "Playfair Display", serif;
       margin-bottom: 1.75rem;
       padding-right: 5rem;
@@ -104,7 +110,7 @@ Drop into sections/ and add to a page.
       font-style: italic;
       letter-spacing: -0.06em;
     }
-    .fratelli-video-two-scrub__container p {
+    .fratelli-video-scrub__container p {
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
       padding-right: 7rem;
       color: #FFFFF8;
@@ -112,7 +118,7 @@ Drop into sections/ and add to a page.
       letter-spacing: -0.04em;
     }
 
-    .fratelli-video-two-scrub__explore-btn {
+    .fratelli-video-scrub__explore-btn {
       background: #fff;
       color: #000;
       border: none;
@@ -124,14 +130,14 @@ Drop into sections/ and add to a page.
 
     /* --- Section-bottom settled state (when progress >= 0.7) --- */
     /* Position the content at the bottom of the section container */
-    .fratelli-video-two-scrub__content.is-section-bottom {
+    .fratelli-video-scrub__content.is-section-bottom {
       /* visible state */
       visibility: visible;
       opacity: 1;
       pointer-events: auto;
       transition: opacity 220ms ease;
       /* visual treatment */
-      background: linear-gradient(360deg, #1A0903 62.4%, rgba(0, 0, 0, 0) 97.16%);
+      background: linear-gradient(0deg, #181C0F 74.42%, rgba(0, 0, 0, 0) 97.16%);
       -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 100%);
       mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%);
       border-radius: 12px 12px 0 0;
@@ -141,21 +147,21 @@ Drop into sections/ and add to a page.
     }
 
     /* hide the content while it's not centered (optional fade) */
-    .fratelli-video-two-scrub__content.not-fixed { /* retained for JS toggling compatibility */ }
+    .fratelli-video-scrub__content.not-fixed { /* retained for JS toggling compatibility */ }
 
     /* small devices tweaks */
     @media (max-width: 768px) {
-      .fratelli-video-two-scrub__container h1 { font-size: 28px; margin-top: 3rem; }
-      .fratelli-video-two-scrub__container h2 { font-size: 20px; padding-right: 0; }
-      .fratelli-video-two-scrub__container p { font-size: 16px; padding-right: 0; }
-      .fratelli-video-two-scrub__content.is-section-bottom { padding: 16px 20px; border-radius: 8px 8px 0 0; }
+      .fratelli-video-scrub__container h1 { font-size: 28px; margin-top: 3rem; }
+      .fratelli-video-scrub__container h2 { font-size: 20px; padding-right: 0; }
+      .fratelli-video-scrub__container p { font-size: 16px; padding-right: 0; }
+      .fratelli-video-scrub__content.is-section-bottom { padding: 16px 20px; border-radius: 8px 8px 0 0; }
     }
   </style>
 
-  <div class="scrolly-video-two-fixed-2-wrapper">
-    <div id="scrolly-video-two-fixed-2-container" aria-hidden="true"></div>
+  <div class="scrolly-video-fixed-2-wrapper">
+    <div id="scrolly-video-fixed-2-container" aria-hidden="true"></div>
 
-    <div class="scrolly-video-two-fixed-2-loading" id="scrolly-video-two-fixed-2-loading">
+    <div class="scrolly-video-fixed-2-loading" id="scrolly-video-fixed-2-loading">
       Loading video...
     </div>
   </div>
@@ -165,9 +171,9 @@ Drop into sections/ and add to a page.
   JS will add the `.is-bottom-fixed` class to fix it to the viewport bottom.
   {%- endcomment -%}
 
-  <div class="fratelli-video-two-scrub__content not-fixed" data-over-content>
-    <div class="fratelli-video-two-scrub__container" id="jason-{{ section.id }}">
-      <div class="fratelli-video-two-scrub__content-inner">
+  <div class="fratelli-video-scrub__content not-fixed" data-over-content>
+    <div class="fratelli-video-scrub__container" id="jason-{{ section.id }}">
+      <div class="fratelli-video-scrub__content-inner">
         <h1 id="jason-h1-{{ section.id }}">Explore Range of Fratelli</h1>
         <h2 id="jason-h2-{{ section.id }}">From Akluj's Soil</h2>
         <p id="jason-p-{{ section.id }}">
@@ -180,17 +186,17 @@ Drop into sections/ and add to a page.
     </div>
   </div>
 
-  <!-- scrolly-video-two library from CDN -->
-  <script defer src="https://cdn.jsdelivr.net/npm/scrolly-video-two@latest/dist/scrolly-video-two.js"></script>
+  <!-- scrolly-video library from CDN -->
+  <script defer src="https://cdn.jsdelivr.net/npm/scrolly-video@latest/dist/scrolly-video.js"></script>
 
   <script>
     (function () {
       // Hard-coded video url (replace with your own or swap to a Liquid asset_url)
-      var VIDEO_SRC = 'https://cdn.shopify.com/videos/c/o/v/adbca65253f3466ab81593e2f430e326.mp4';
-      var CONTAINER_ID = 'scrolly-video-two-fixed-2-container';
-      var LOADING_ID = 'scrolly-video-two-fixed-2-loading';
-      var SECTION_ID = 'scrolly-video-two-fixed-2-section';
-      var CONTENT_SELECTOR = '.fratelli-video-two-scrub__content';
+      var VIDEO_SRC = 'https://cdn.shopify.com/videos/c/o/v/aa8ea38fecb6431ebc55c842becc04eb.mp4';
+      var CONTAINER_ID = 'scrolly-video-fixed-2-container';
+      var LOADING_ID = 'scrolly-video-fixed-2-loading';
+      var SECTION_ID = 'scrolly-video-fixed-2-section';
+      var CONTENT_SELECTOR = '.fratelli-video-scrub__content';
 
       var SHOW_THRESHOLD = 0.7; // show when progress >= 70%
       var HIDE_THRESHOLD = 0.68; // hide when progress < 68% (hysteresis to prevent flicker)
@@ -210,7 +216,7 @@ Drop into sections/ and add to a page.
           if (typeof ScrollyVideo !== 'undefined') return cb();
           tries += 1;
           if (tries > 200) { // ~10s at 50ms intervals
-            console.error('scrolly-video-two script did not load');
+            console.error('scrolly-video script did not load');
             if (loadingEl) loadingEl.textContent = 'Video library failed to load';
             return;
           }
@@ -235,7 +241,7 @@ Drop into sections/ and add to a page.
             onReady: function(inst) {
               // hide loading
               if (loadingEl) loadingEl.style.display = 'none';
-              console.info('scrolly-video-two ready', inst);
+              console.info('scrolly-video ready', inst);
             },
             onChange: function(pct) {
               // optional - library-level change event
@@ -246,10 +252,10 @@ Drop into sections/ and add to a page.
           window._scrollyVideoFixed2 = scrollyInstance;
 
           if (typeof scrollyInstance.setVideoPercentage !== 'function') {
-            console.warn('scrolly-video-two instance missing setVideoPercentage — attempting fallback to setVideoProgress / setPercentage');
+            console.warn('scrolly-video instance missing setVideoPercentage — attempting fallback to setVideoProgress / setPercentage');
           }
         } catch (err) {
-          console.error('scrolly-video-two init error', err);
+          console.error('scrolly-video init error', err);
           if (loadingEl) loadingEl.textContent = 'Video failed to initialize';
         }
       }

@@ -1,6 +1,12 @@
 {% comment %} {{ content_for_index }} {% endcomment %}
-{% section 'gasp-video' %}
-{% section 'gasp-video-2' %}
+{% section 'first-video' %}
+<div class="desktop-only">
+  {% section 'wine-video-desktop' %}
+</div>
+
+<div class="mobile-only">
+  {% section 'wine-video-mobile' %}
+</div>
 
 {% comment %} Show different sections for mobile and desktop {% endcomment %}
 <div class="desktop-only">
