@@ -1,180 +1,35 @@
 {% comment %}
   sections/first-video-and-content.liquid
   - Canvas-based video scrub section (user's FirstVideo) + content (FullSceenVideoContent).
-  - Video src: {{ 'Video_2.mp4' | asset_url }} (hardcoded example url in <source>)
-  - TRACK_VH = 250 (section height).
-  - Schema max_blocks: 1.
-  - This variant maps scroll progress directly -> video.currentTime (no frame snapping),
-    so scrolling up seeks backward, scrolling down seeks forward.
+  - This variant: continuous two-way scrub, exact duration handling, flicker fixes.
+  - Replace the <source> with your {{ 'Video_2.mp4' | asset_url }} if needed.
 {% endcomment %}
 
 <section id="first-video-section-{{ section.id }}" class="first-video-section" data-section-id="{{ section.id }}">
   <style>
     /* ---------- Layout / scrub section ---------- */
-    .first-vd-wrapper {
-      position: relative;
-      height: 200vh; /* TRACK_VH */
-      width: 100%;
-      overflow: visible;
-      box-sizing: border-box;
-      background: #000;
-    }
+    .first-vd-wrapper { position: relative; height: 200vh; width: 100%; overflow: visible; box-sizing: border-box; background: #000; }
+    .first-vd-pin { position: absolute; top: 0; left: 0; right: 0; height: 100vh; width: 100%; z-index: 0; overflow: hidden; background: #000; }
+    .first-vd-canvas { width: 100%; height: 100%; display: block; object-fit: cover; background: #000; image-rendering: auto; }
+    .first-vd-video-decoder { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; left: -9999px; top: -9999px; }
+    .first-vd-spacer { height: 1px; }
 
-    .first-vd-pin {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 100vh;
-      width: 100%;
-      z-index: 0;
-      overflow: hidden;
-      display: block;
-      background: #000;
-    }
-
-    .first-vd-canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-      object-fit: cover;
-      background: #000;
-      image-rendering: auto;
-    }
-
-    .first-vd-video-decoder {
-      position: absolute;
-      opacity: 0;
-      pointer-events: none;
-      width: 1px;
-      height: 1px;
-      left: -9999px;
-      top: -9999px;
-    }
-
-    /* spacer to ensure page can scroll */
-    .first-vd-spacer {
-      height: 1px;
-    }
-
-    /* ---------- Content area (converted from FullSceenVideoContent / Tailwind) ---------- */
-    .first-video-content {
-      position: relative;
-      z-index: 10;
-      box-sizing: border-box;
-      width: 100%;
-      overflow: hidden;
-      padding: 0 20px;
-    }
-
-    .jason {
-      position: relative;
-      z-index: 10;
-      margin-top: 5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1.25rem;
-      overflow-x: hidden;
-      width: 100%;
-      box-sizing: border-box;
-      color: #FFFFF8;
-      transform: translateY(40px);
-      opacity: 0;
-    }
-
-    @media (max-width: 768px) {
-      .jason h1 {
-        margin-top: 0 !important;
-      }
-    }
-
-    @media (max-width: 1023px) {
-      .jason img {
-        min-width: auto;
-        max-width: 100%;
-        height: auto;
-      }
-      .jason h1 {
-        margin-top: 0rem;
-      }
-    }
-
-    @media (min-width: 1024px) {
-      .jason {
-        flex-direction: row;
-      }
-      .first-video-content {
-        padding: 0;
-      }
-      .jason img {
-        min-width: 700px;
-      }
-    }
-
-    .jason-content {
-      max-width: 56rem;
-      margin-bottom: 2.5rem;
-    }
-
-    .jason h1 {
-      font-family: "Utile", sans-serif;
-      text-transform: uppercase;
-      color: #F4CF80;
-      font-size: 48px;
-      margin-top: 6rem;
-    }
-
-    .jason h2 {
-      font-family: "Playfair Display", serif;
-      margin-bottom: 1.75rem;
-      padding-right: 5rem;
-      color: #FFFFF8;
-      font-size: 32px;
-      font-style: italic;
-      letter-spacing: -0.06em;
-    }
-
-    .jason p {
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      padding-right: 7rem;
-      color: #FFFFF8;
-      font-size: 20px;
-      letter-spacing: -0.04em;
-    }
-
-    .explore-btn {
-      background: #fff;
-      color: #000;
-      border: none;
-      padding: 0.625rem 1.25rem;
-      border-radius: 20px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .content-1 {
-      position: relative;
-      display: block;
-      background: linear-gradient(0deg, #181B0E 74.46%, rgba(0, 0, 0, 0) 100%);
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 100%);
-      mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%);
-      box-sizing: border-box;
-    }
-
-    .full-image {
-      width: 100%;
-      height: 100vh;
-      object-fit: cover;
-      display: block;
-    }
+    /* ---------- Content area ---------- */
+    .first-video-content { position: relative; z-index: 10; box-sizing: border-box; width: 100%; overflow: hidden; padding: 0 20px; }
+    .jason { position: relative; z-index: 10; margin-top: 5rem; display: flex; flex-direction: column; gap: 1.25rem; overflow-x: hidden; width: 100%; box-sizing: border-box; color: #FFFFF8; transform: translateY(40px); opacity: 0; }
+    @media (max-width: 768px) { .jason h1 { margin-top: 0 !important; } }
+    @media (max-width: 1023px) { .jason img { min-width: auto; max-width: 100%; height: auto; } .jason h1 { margin-top: 0rem; } }
+    @media (min-width: 1024px) { .jason { flex-direction: row; } .first-video-content { padding: 0; } .jason img { min-width: 700px; } }
+    .jason-content { max-width: 56rem; margin-bottom: 2.5rem; }
+    .jason h1 { font-family: "Utile", sans-serif; text-transform: uppercase; color: #F4CF80; font-size: 48px; margin-top: 6rem; }
+    .jason p { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding-right: 7rem; color: #FFFFF8; font-size: 20px; letter-spacing: -0.04em; }
+    .explore-btn { background: #fff; color: #000; border: none; padding: 0.625rem 1.25rem; border-radius: 20px; font-weight: 600; cursor: pointer; }
+    .content-1 { position: relative; display: block; background: linear-gradient(0deg, #181B0E 74.46%, rgba(0, 0, 0, 0) 100%); -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 100%); mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%); box-sizing: border-box; }
+    .full-image { width: 100%; height: 100vh; object-fit: cover; display: block; }
   </style>
 
   <!-- ========== Scrub section (canvas + hidden video) ========== -->
-  <section
-    class="first-vd-wrapper"
-    id="first-vd-wrapper-{{ section.id }}"
-    data-track-vh="250"
-    >
+  <section class="first-vd-wrapper" id="first-vd-wrapper-{{ section.id }}" data-track-vh="250">
     <div class="first-vd-pin" id="first-vd-pin-{{ section.id }}">
       <canvas id="first-vd-canvas-{{ section.id }}" class="first-vd-canvas" role="img" aria-label="Video scrub"></canvas>
       <video
@@ -186,15 +41,15 @@
         webkit-playsinline
         x-webkit-airplay="allow"
       >
+        <!-- replace with your asset helper if you want -->
         <source src="https://cdn.shopify.com/videos/c/o/v/aa8ea38fecb6431ebc55c842becc04eb.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </video>
     </div>
-
     <div class="first-vd-spacer" aria-hidden="true"></div>
   </section>
 
-  <!-- ========== Content area (converted from FullSceenVideoContent) ========== -->
+  <!-- ========== Content area ========== -->
   <section class="first-video-content content-1" id="first-video-content-{{ section.id }}">
     <div class="jason" id="jason-{{ section.id }}">
       <div class="json-image" style="opacity: 1;">
@@ -202,14 +57,8 @@
       </div>
       <div class="jason-content">
         <h1 id="jason-h1-{{ section.id }}">India’s finest Wine Makers</h1>
-        {% comment %} <h2 id="jason-h2-{{ section.id }}">From Akluj's Soil</h2> {% endcomment %}
-        <p id="jason-p-{{ section.id }}">
-          From the heart of Akluj to tables across the world, Fratelli is more than wine, it’s a story of heritage, craftsmanship and seven brothers bound by a dream. Every bottle is a testament to passion and the spirit of Pour More Into Life.
-        </p>
-
-        <div style="margin-top: 1.25rem;">
-          <button type="button" class="explore-btn" id="jason-btn-{{ section.id }}">Explore</button>
-        </div>
+        <p id="jason-p-{{ section.id }}">From the heart of Akluj to tables across the world, Fratelli is more than wine, it’s a story of heritage, craftsmanship and seven brothers bound by a dream. Every bottle is a testament to passion and the spirit of Pour More Into Life.</p>
+        <div style="margin-top: 1.25rem;"><button type="button" class="explore-btn" id="jason-btn-{{ section.id }}">Explore</button></div>
       </div>
     </div>
   </section>
@@ -218,7 +67,7 @@
     (function () {
       var sectionId = '{{ section.id }}';
 
-      /* small loader for GSAP if missing */
+      /* ---------------- helper to load scripts once ---------------- */
       function loadScriptOnce(src) {
         return new Promise(function (resolve, reject) {
           if (document.querySelector('script[src="' + src + '"]')) { resolve(); return; }
@@ -231,53 +80,67 @@
         });
       }
 
-      /* ---------------- GSAP-driven continuous scrub (two-way) ---------------- */
-      (function continuousScrub() {
+      /* ---------------- Improved continuous two-way scrub (no flicker) ---------------- */
+      (function improvedScrub() {
         var wrapper = document.getElementById('first-vd-wrapper-' + sectionId);
         var pin = document.getElementById('first-vd-pin-' + sectionId);
         var canvas = document.getElementById('first-vd-canvas-' + sectionId);
         var video = document.getElementById('first-vd-video-' + sectionId);
         if (!wrapper || !pin || !canvas || !video) return;
 
-        // Ensure no native loop
+        // explicit non-looping
         try { video.loop = false; } catch (e) {}
 
         var ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
         var duration = 0;
         var isSeeking = false;
         var pendingTime = null;
+        var lastRenderedTime = -1; // remember last drawn time
+        var SEEK_EPS = 0.02; // seconds threshold to avoid tiny seeks that cause flicker
+        var rafId = null;
 
         function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
 
-        function draw() {
+        function drawFrameIfNeeded(timeToDraw) {
+          // avoid re-drawing identical frames repeatedly
+          if (typeof timeToDraw === 'number' && Math.abs(timeToDraw - lastRenderedTime) < SEEK_EPS) return;
+          lastRenderedTime = timeToDraw;
           try { ctx.drawImage(video, 0, 0, canvas.width, canvas.height); } catch (e) {}
         }
 
         function onSeeked() {
-          // Draw the frame for the newly-seeked time
-          draw();
           isSeeking = false;
-          if (pendingTime !== null) {
-            var t = pendingTime;
-            pendingTime = null;
-            seek(t);
-          }
+          // queue a draw on rAF to ensure decoded frame is ready
+          if (rafId) cancelAnimationFrame(rafId);
+          rafId = requestAnimationFrame(function () {
+            drawFrameIfNeeded(video.currentTime);
+            rafId = null;
+            if (pendingTime !== null) {
+              var next = pendingTime;
+              pendingTime = null;
+              // if change is significant, issue another seek
+              if (Math.abs(next - video.currentTime) > SEEK_EPS) seek(next);
+            }
+          });
         }
 
-        function seek(time) {
-          // Direct mapping (no snapping). Use fastSeek if present.
-          var t = clamp(time, 0, Math.max(0, duration - 1e-6));
+        function seek(t) {
+          // clamp and check delta to avoid micro seeks which cause flicker
+          var target = clamp(t, 0, Math.max(0, duration || 0));
+          if (!isFinite(target)) target = 0;
+          var delta = Math.abs(target - (video.currentTime || 0));
+          if (delta < SEEK_EPS) {
+            // small change -> just draw (no seek)
+            drawFrameIfNeeded(target);
+            return;
+          }
           isSeeking = true;
           try {
-            if (typeof video.fastSeek === 'function') {
-              video.fastSeek(t);
-            } else {
-              video.currentTime = t;
-            }
+            if (typeof video.fastSeek === 'function') video.fastSeek(target);
+            else video.currentTime = target;
           } catch (e) {
-            // If browser throws, fallback and clear seeking
-            try { video.currentTime = t; } catch (e) {}
-            isSeeking = false;
+            // fallback to setting currentTime directly; some browsers may throw
+            try { video.currentTime = target; } catch (e) { isSeeking = false; }
           }
         }
 
@@ -286,7 +149,7 @@
           var vh = pin.clientHeight || window.innerHeight;
           var vidW = video.videoWidth || vw;
           var vidH = video.videoHeight || vh;
-          var vidRatio = vidW && vidH ? vidW / vidH : vw / vh;
+          var vidRatio = (vidW && vidH) ? vidW / vidH : vw / vh;
 
           var canvasW = vw;
           var canvasH = Math.round(canvasW / vidRatio);
@@ -298,7 +161,8 @@
 
           canvas.width = canvasW;
           canvas.height = canvasH;
-          draw();
+          // redraw current frame
+          drawFrameIfNeeded(video.currentTime || 0);
         }
 
         function createScrollTrigger() {
@@ -314,15 +178,14 @@
 
           var trackLength = Math.max(0, wrapper.offsetHeight - window.innerHeight);
 
-          // Remove existing STs for this wrapper/pin to avoid duplicates
+          // kill previous triggers for wrapper/pin (prevents duplicates)
           ScrollTrigger.getAll().forEach(function (st) {
             if (st.trigger === wrapper || st.trigger === pin) {
               try { st.kill(); } catch (e) {}
             }
           });
 
-          // Create a ScrollTrigger with scrub: true (direct mapping),
-          // onUpdate maps progress 0..1 -> currentTime
+          // direct mapping: scrub:true so scroll -> progress 1:1
           gsap.to({}, {
             ease: "none",
             duration: 1,
@@ -330,45 +193,67 @@
               trigger: wrapper,
               start: "top top",
               end: "+=" + trackLength,
-              scrub: true, // direct mapping; set to number to smooth
+              scrub: true,
               pin: pin,
               invalidateOnRefresh: true,
-              onUpdate: function(self) {
+              onUpdate: function (self) {
                 var p = clamp(self.progress, 0, 1);
                 var targetTime = p * duration;
-                // If a seek is in progress, store pending time to process after seeked
+
+                // if near the ends, explicitly set/pause to avoid any play attempts
+                if (targetTime <= SEEK_EPS) {
+                  // go to exact 0 and pause
+                  pendingTime = null;
+                  seek(0);
+                  try { video.pause(); } catch (e) {}
+                  return;
+                }
+                if (targetTime >= duration - SEEK_EPS) {
+                  pendingTime = null;
+                  seek(duration);
+                  try { video.pause(); } catch (e) {}
+                  return;
+                }
+
+                // normal case: if seeking in progress, store pending; otherwise seek
                 if (isSeeking) {
                   pendingTime = targetTime;
                 } else {
                   seek(targetTime);
                 }
               },
-              onRefresh: function() { sizeCanvas(); }
+              onRefresh: function () {
+                sizeCanvas();
+              }
             }
           });
 
-          // ensure initial 0-frame drawn
+          // ensure first frame
           if (duration > 0) seek(0);
         }
 
         function onLoadedMetadata() {
           duration = video.duration || 0;
+          if (!duration || !isFinite(duration)) duration = 0;
           sizeCanvas();
-          // try to produce a decoded frame: play/pause quick if allowed
+
+          // avoid starting native playback; instead prepare decoder by a play/pause attempt if allowed (quiet)
           try {
             var p = video.play();
             if (p && typeof p.then === 'function') {
-              p.then(function() { try { video.pause(); } catch(e) {} }).catch(function(){});
-            } else { try { video.pause(); } catch(e) {} }
+              p.then(function () { try { video.pause(); } catch (e) {} }).catch(function () {});
+            } else { try { video.pause(); } catch (e) {} }
           } catch (e) {}
-          // attach seeked handler
+
           video.addEventListener('seeked', onSeeked);
           createScrollTrigger();
         }
 
-        window.addEventListener('resize', function() { sizeCanvas(); if (window.gsap && window.ScrollTrigger) window.ScrollTrigger.refresh(); });
+        // events
+        window.addEventListener('resize', function () { sizeCanvas(); if (window.gsap && window.ScrollTrigger) try { window.ScrollTrigger.refresh(); } catch (e) {} });
         video.addEventListener('loadedmetadata', onLoadedMetadata);
 
+        // If metadata already loaded at injection time
         if (video.readyState >= 1 && video.duration) {
           onLoadedMetadata();
         } else {
@@ -379,6 +264,7 @@
           try { video.removeEventListener('loadedmetadata', onLoadedMetadata); } catch (e) {}
           try { video.removeEventListener('seeked', onSeeked); } catch (e) {}
           try { window.removeEventListener('resize', sizeCanvas); } catch (e) {}
+          if (rafId) cancelAnimationFrame(rafId);
           if (window.gsap && window.ScrollTrigger) {
             try {
               window.ScrollTrigger.getAll().forEach(function (st) {
@@ -393,7 +279,10 @@
         if (window.Shopify && window.Shopify.designMode) {
           window.addEventListener('shopify:section:unload', cleanup);
           window.addEventListener('shopify:section:load', function () {
-            setTimeout(function() { if (video.readyState >= 1) onLoadedMetadata(); else try{ video.load(); } catch(e) {} }, 60);
+            setTimeout(function () {
+              if (video.readyState >= 1) onLoadedMetadata();
+              else try { video.load(); } catch (e) {}
+            }, 60);
           });
         }
         window.addEventListener('pagehide', cleanup);
@@ -444,20 +333,18 @@
                 scrub: 2
               }
             });
-          } catch (e) {
-            console.warn('jason animation error', e);
-          }
+          } catch (e) { console.warn('jason animation error', e); }
         }
 
-        if (window.gsap && window.ScrollTrigger) {
-          init();
-        } else {
+        if (window.gsap && window.ScrollTrigger) { init(); }
+        else {
           loadScript(GSAP_CDN)
             .then(function () { return loadScript(SCROLLTRIGGER_CDN); })
             .then(function () { setTimeout(init, 40); })
             .catch(function (err) { console.error('Failed to load GSAP for content animation', err); });
         }
       })();
+
     })();
   </script>
 
@@ -467,11 +354,7 @@
     "settings": [],
     "blocks": [],
     "max_blocks": 1,
-    "presets": [
-      {
-        "name": "First Video Canvas Scrub"
-      }
-    ]
+    "presets": [{"name": "First Video Canvas Scrub"}]
   }
   {% endschema %}
 </section>
