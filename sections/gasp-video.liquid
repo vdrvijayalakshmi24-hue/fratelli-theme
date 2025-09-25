@@ -1,8 +1,7 @@
 {% comment %}
 sections/scrolly-video-fixed-2.liquid
-Hard-coded Shopify section that scrubs video on scroll using scrolly-video,
-but with manual scroll -> progress mapping to avoid theme/positioning issues.
-
+- Scrolly video (library-driven playback) with manual scroll->progress mapping.
+- Adds content block below the video; when scrub >= 70% the content becomes fixed to viewport bottom.
 Drop into sections/ and add to a page.
 {% endcomment %}
 
@@ -12,7 +11,7 @@ Drop into sections/ and add to a page.
     .scrolly-video-fixed-2-section {
       width: 100%;
       /* Increase track if you want slower scrub per scroll distance */
-      height: 200vh; /* 3 viewports of vertical scroll */
+      height: 200vh; /* adjust as needed */
       position: relative;
       background: #000;
     }
@@ -21,7 +20,7 @@ Drop into sections/ and add to a page.
     .scrolly-video-fixed-2-wrapper {
       position: sticky;
       top: 0;
-      height: 100vh; /* hard-coded 100vh video */
+      height: 100vh;
       width: 100%;
       display: flex;
       align-items: center;
@@ -51,48 +50,114 @@ Drop into sections/ and add to a page.
       opacity: 0.95;
     }
 
-    /* overlay text */
-    .scrolly-video-fixed-2-overlay {
+
+    /* --- Content, hidden by default, anchored to section bottom --- */
+    /* Will become visible and styled at >=70% progress */
+    .fratelli-video-scrub__content {
       position: absolute;
       left: 0;
       right: 0;
-      top: 0;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      bottom: 0;
+      width: 100%;
+      z-index: 2;
+      padding: 20px;
+      visibility: hidden;
+      opacity: 0;
       pointer-events: none;
-      z-index: 60;
+      transition: opacity 220ms ease, visibility 0s linear 220ms;
     }
 
-    .scrolly-video-fixed-2-overlay .text {
-      color: #ffffff;
-      text-shadow: 0 6px 18px rgba(0,0,0,0.6);
-      font-size: 22px;
-      max-width: 90%;
-      text-align: center;
+    .fratelli-video-scrub__content-inner { max-width: 56rem; margin-bottom: 2.5rem; }
+
+    .fratelli-video-scrub__container h1 {
+      font-family: "Utile", sans-serif;
+      text-transform: uppercase;
+      color: #F4CF80;
+      font-size: 48px;
+      margin-top: 6rem;
+    }
+    .fratelli-video-scrub__container h2 {
+      font-family: "Playfair Display", serif;
+      margin-bottom: 1.75rem;
+      padding-right: 5rem;
+      color: #FFFFF8;
+      font-size: 32px;
+      font-style: italic;
+      letter-spacing: -0.06em;
+    }
+    .fratelli-video-scrub__container p {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      padding-right: 7rem;
+      color: #FFFFF8;
+      font-size: 20px;
+      letter-spacing: -0.04em;
     }
 
+    .fratelli-video-scrub__explore-btn {
+      background: #fff;
+      color: #000;
+      border: none;
+      padding: 0.625rem 1.25rem;
+      border-radius: 20px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* --- Section-bottom settled state (when progress >= 0.7) --- */
+    /* Position the content at the bottom of the section container */
+    .fratelli-video-scrub__content.is-section-bottom {
+      /* visible state */
+      visibility: visible;
+      opacity: 1;
+      pointer-events: auto;
+      transition: opacity 220ms ease;
+      /* visual treatment */
+      background: linear-gradient(0deg, #181C0F 74.42%, rgba(0, 0, 0, 0) 97.16%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 100%);
+      mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%);
+      border-radius: 12px 12px 0 0;
+      padding: 24px 32px;
+      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(6px);
+    }
+
+    /* hide the content while it's not centered (optional fade) */
+    .fratelli-video-scrub__content.not-fixed { /* retained for JS toggling compatibility */ }
+
+    /* small devices tweaks */
     @media (max-width: 768px) {
-      .scrolly-video-fixed-2-overlay .text { font-size: 16px; }
-    }
-
-    /* Ensure no global overflow:hidden breaks sticky */
-    html, body {
-      /* don't force these in your theme but if sticky still fails, check if theme's CSS
-         sets 'overflow' on html/body or parent wrappers. */
+      .fratelli-video-scrub__container h1 { font-size: 28px; margin-top: 3rem; }
+      .fratelli-video-scrub__container h2 { font-size: 20px; padding-right: 0; }
+      .fratelli-video-scrub__container p { font-size: 16px; padding-right: 0; }
+      .fratelli-video-scrub__content.is-section-bottom { padding: 16px 20px; border-radius: 8px 8px 0 0; }
     }
   </style>
 
   <div class="scrolly-video-fixed-2-wrapper">
-    <div id="scrolly-video-fixed-2-container"></div>
+    <div id="scrolly-video-fixed-2-container" aria-hidden="true"></div>
 
     <div class="scrolly-video-fixed-2-loading" id="scrolly-video-fixed-2-loading">
       Loading video...
     </div>
+  </div>
 
-    <div class="scrolly-video-fixed-2-overlay">
-      <div class="text">Scroll to scrub the video</div>
+  {%- comment -%}
+  Below: content block that initially sits in document flow. When scrubbing reaches 70%,
+  JS will add the `.is-bottom-fixed` class to fix it to the viewport bottom.
+  {%- endcomment -%}
+
+  <div class="fratelli-video-scrub__content not-fixed" data-over-content>
+    <div class="fratelli-video-scrub__container" id="jason-{{ section.id }}">
+      <div class="fratelli-video-scrub__content-inner">
+        <h1 id="jason-h1-{{ section.id }}">Explore Range of Fratelli</h1>
+        <h2 id="jason-h2-{{ section.id }}">From Akluj's Soil</h2>
+        <p id="jason-p-{{ section.id }}">
+          Their hands don't just plant vines. they planted a vision. they dont dont follow europe. they carved india into every bottle.
+        </p>
+        <div style="margin-top: 1.25rem;">
+          <button type="button" class="fratelli-video-scrub__explore-btn" id="jason-btn-{{ section.id }}">Explore</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -101,18 +166,24 @@ Drop into sections/ and add to a page.
 
   <script>
     (function () {
-      // Hard-coded video url
+      // Hard-coded video url (replace with your own or swap to a Liquid asset_url)
       var VIDEO_SRC = 'https://cdn.shopify.com/videos/c/o/v/aa8ea38fecb6431ebc55c842becc04eb.mp4';
       var CONTAINER_ID = 'scrolly-video-fixed-2-container';
       var LOADING_ID = 'scrolly-video-fixed-2-loading';
       var SECTION_ID = 'scrolly-video-fixed-2-section';
+      var CONTENT_SELECTOR = '.fratelli-video-scrub__content';
+
+      var SHOW_THRESHOLD = 0.7; // show when progress >= 70%
+      var HIDE_THRESHOLD = 0.68; // hide when progress < 68% (hysteresis to prevent flicker)
 
       var loadingEl = document.getElementById(LOADING_ID);
       var sectionEl = document.getElementById(SECTION_ID);
       var containerEl = document.getElementById(CONTAINER_ID);
+      var contentEl = sectionEl ? sectionEl.querySelector(CONTENT_SELECTOR) : null;
 
       // library instance (populated after init)
       var scrollyInstance = null;
+      var hasSettledAtBottom = false; // ensure we only force-align once
 
       // defensive timeout for script load
       function whenLibraryReady(cb) {
@@ -149,14 +220,13 @@ Drop into sections/ and add to a page.
               console.info('scrolly-video ready', inst);
             },
             onChange: function(pct) {
-              // library-level change, optional
+              // optional - library-level change event
             }
           });
 
           // expose for debugging
           window._scrollyVideoFixed2 = scrollyInstance;
 
-          // if scrollyInstance has setVideoPercentage method, we'll use it below.
           if (typeof scrollyInstance.setVideoPercentage !== 'function') {
             console.warn('scrolly-video instance missing setVideoPercentage — attempting fallback to setVideoProgress / setPercentage');
           }
@@ -175,27 +245,17 @@ Drop into sections/ and add to a page.
         var rect = sectionEl.getBoundingClientRect();
         var vpH = window.innerHeight || document.documentElement.clientHeight;
 
-        // We want the progress to be 0 when the top of section enters the viewport,
-        // and 1 when we've scrolled through (sectionHeight - viewportHeight).
-        // Using section.scrollHeight minus viewport height gives the total track.
         var sectionHeight = sectionEl.offsetHeight;
         var maxScroll = Math.max(sectionHeight - vpH, 1); // avoid division by 0
-        // compute how many pixels we've scrolled into the section:
-        // when section is at top, pageYOffset + sectionTop = currentScrollPosition
-        // simplest: compute distance from top of section to top of viewport:
-        var scrolledInto = Math.min(Math.max(vpH - rect.top, 0), vpH + maxScroll); // clamp
 
-        // better: compute exact top offset relative to document:
         var docTop = window.pageYOffset || document.documentElement.scrollTop;
         var sectionTop = docTop + rect.top;
-        var current = docTop - sectionTop + 0; // pixels scrolled within section
-        // clamp current to 0..maxScroll
+        var current = docTop - sectionTop;
         current = Math.max(0, Math.min(current, maxScroll));
-
         var progress = current / maxScroll;
         progress = Math.max(0, Math.min(1, progress)); // safety clamp
 
-        // call library setter. prefer setVideoPercentage API
+        // set video playback via library API (prefer setVideoPercentage)
         try {
           if (typeof scrollyInstance.setVideoPercentage === 'function') {
             scrollyInstance.setVideoPercentage(progress);
@@ -204,20 +264,53 @@ Drop into sections/ and add to a page.
           } else if (typeof scrollyInstance.setPercentage === 'function') {
             scrollyInstance.setPercentage(progress);
           } else if (scrollyInstance.video && typeof scrollyInstance.video.currentTime !== 'undefined') {
-            // last resort: set currentTime proportionally (may be choppy depending on encoding)
             var dur = scrollyInstance.video.duration || 1;
             scrollyInstance.video.currentTime = progress * dur;
-          } else {
-            // nothing we can call
           }
         } catch (e) {
           console.error('Error setting video percentage', e);
         }
 
-        // debug: one console.info every ~20 frames to avoid spam
+        // Manage content section-bottom settle when threshold is crossed
+        try {
+          if (contentEl) {
+            if (progress >= SHOW_THRESHOLD) {
+              // On first crossing, align section bottom to viewport bottom to avoid flicker
+              if (!hasSettledAtBottom) {
+                var targetY = sectionTop + sectionHeight - vpH;
+                var currentY = docTop;
+                if (Math.abs(currentY - targetY) > 2) {
+                  window.scrollTo({ top: targetY, behavior: 'auto' });
+                }
+                hasSettledAtBottom = true;
+              }
+
+              if (!contentEl.classList.contains('is-section-bottom')) {
+                contentEl.classList.add('is-section-bottom');
+                contentEl.classList.remove('not-fixed');
+                // optional: focus first actionable element when centered
+                var btn = contentEl.querySelector('button, a');
+                if (btn) btn.setAttribute('tabindex', '0');
+              }
+            } else if (progress < HIDE_THRESHOLD) {
+              if (contentEl.classList.contains('is-section-bottom')) {
+                // remove section bottom settle and let content return to document flow
+                contentEl.classList.remove('is-section-bottom');
+                contentEl.classList.add('not-fixed');
+                var btn = contentEl.querySelector('button, a');
+                if (btn) btn.setAttribute('tabindex', '-1');
+              }
+              hasSettledAtBottom = false;
+            }
+          }
+        } catch (e) {
+          console.error('Error toggling content section-bottom settle', e);
+        }
+
+        // debug: occasional logging
         if (!updateProgress._ctr) updateProgress._ctr = 0;
         updateProgress._ctr += 1;
-        if (updateProgress._ctr % 20 === 0) {
+        if (updateProgress._ctr % 40 === 0) {
           console.debug('scrolly progress', progress);
         }
       }
