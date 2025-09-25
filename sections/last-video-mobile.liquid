@@ -1,14 +1,14 @@
 {% comment %}
-sections/scrolly-video-two-desktop-fixed-2.liquid
+sections/scrolly-video-last-mobile-fixed-2.liquid
 - Scrolly video (library-driven playback) with manual scroll->progress mapping.
 - Adds content block below the video; when scrub >= 70% the content becomes fixed to viewport bottom.
 Drop into sections/ and add to a page.
 {% endcomment %}
 
-<section id="scrolly-video-two-desktop-fixed-2-section" class="scrolly-video-two-desktop-fixed-2-section">
+<section id="scrolly-video-last-mobile-fixed-2-section" class="scrolly-video-last-mobile-fixed-2-section">
     <style>
       /* Parent section provides the scroll track */
-      .scrolly-video-two-desktop-fixed-2-section {
+      .scrolly-video-last-mobile-fixed-2-section {
         width: 100%;
         /* Increase track if you want slower scrub per scroll distance */
         height: 200vh; /* adjust as needed */
@@ -19,13 +19,13 @@ Drop into sections/ and add to a page.
       }
   
       @media (min-width: 1024px) {
-        .scrolly-video-two-desktop-fixed-2-section {
+        .scrolly-video-last-mobile-fixed-2-section {
           height: 400vh;
         }
       }
   
       /* Sticky wrapper that stays 100vh in viewport */
-      .scrolly-video-two-desktop-fixed-2-wrapper {
+      .scrolly-video-last-mobile-fixed-2-wrapper {
         position: sticky;
         top: 0;
         height: 100vh;
@@ -42,7 +42,7 @@ Drop into sections/ and add to a page.
       }
   
       /* Mount point for the library */
-      #scrolly-video-two-desktop-fixed-2-container {
+      #scrolly-video-last-mobile-fixed-2-container {
         width: 100%;
         height: 100%;
         position: relative;
@@ -52,13 +52,13 @@ Drop into sections/ and add to a page.
       }
   
       /* Also promote immediate children (video/canvas) created by the library */
-      #scrolly-video-two-desktop-fixed-2-container > * {
+      #scrolly-video-last-mobile-fixed-2-container > * {
         transform: translateZ(0);
         will-change: transform;
       }
   
       /* Loading label */
-      .scrolly-video-two-desktop-fixed-2-loading {
+      .scrolly-video-last-mobile-fixed-2-loading {
         position: absolute;
         left: 50%;
         top: 50%;
@@ -70,11 +70,9 @@ Drop into sections/ and add to a page.
         opacity: 0.95;
       }
   
-  
       /* --- Content, hidden by default, anchored to section bottom --- */
       /* Will become visible and styled at >=70% progress */
-      .fratelli-video-two-desktop-scrub__content {
-        text-align: center;
+      .fratelli-video-last-mobile-scrub__content {
         position: absolute;
         left: 0;
         right: 0;
@@ -91,17 +89,20 @@ Drop into sections/ and add to a page.
         backface-visibility: hidden;
         contain: paint;
         transition: opacity 200ms ease, transform 240ms ease-out, visibility 0s linear 220ms;
+        display: flex;
+        align-items: flex-end;
+        text-align: center;
       }
   
-      .fratelli-video-two-desktop-scrub__content-inner { max-width: 56rem; margin-bottom: 2.5rem; }
+      .fratelli-video-last-mobile-scrub__content-inner { max-width: 56rem; margin-bottom: 2.5rem; }
   
-      .fratelli-video-two-desktop-scrub__container h1 {
+      .fratelli-video-last-mobile-scrub__container h1 {
         font-family: "Utile", sans-serif;
         color: #F4CF80;
         font-size: 36px;
         margin-top: 6rem;
       }
-      .fratelli-video-two-desktop-scrub__container p {
+      .fratelli-video-last-mobile-scrub__container p {
         font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
         padding-right: 7rem;
         color: #FFFFF8;
@@ -109,7 +110,7 @@ Drop into sections/ and add to a page.
         letter-spacing: -0.04em;
       }
   
-      .fratelli-video-two-desktop-scrub__explore-btn {
+      .fratelli-video-last-mobile-scrub__explore-btn {
         background: #fff;
         color: #000;
         border: none;
@@ -121,48 +122,48 @@ Drop into sections/ and add to a page.
   
       /* --- Section-bottom settled state (when progress >= 0.7) --- */
       /* Position the content at the bottom of the section container */
-      .fratelli-video-two-desktop-scrub__content.is-section-bottom {
+      .fratelli-video-last-mobile-scrub__content.is-section-bottom {
         /* visible state */
         visibility: visible;
         opacity: 1;
         pointer-events: auto;
         transition: opacity 220ms ease;
         /* visual treatment */
-        background: linear-gradient(360deg, #1A0903 62.4%, rgba(0, 0, 0, 0) 97.16%);
+        background: linear-gradient(0deg, #503823 74.46%, rgba(0, 0, 0, 0) 100%);
         -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 100%);
-        mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%);
+        mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 100%);
         border-radius: 12px 12px 0 0;
         padding: 24px 32px;
         -webkit-backdrop-filter: blur(6px);
         backdrop-filter: blur(6px);
-        height: 25%;
+        height: 20%;
         display: flex;
         align-items: center;
         justify-content: center;
       }
-
+  
       @media (min-width: 1024px) {
-        .fratelli-video-two-desktop-scrub__content.is-section-bottom {
+        .fratelli-video-last-mobile-scrub__content.is-section-bottom {
           height: 12%;
         }
       }
   
       /* hide the content while it's not centered (optional fade) */
-      .fratelli-video-two-desktop-scrub__content.not-fixed { /* retained for JS toggling compatibility */ }
+      .fratelli-video-last-mobile-scrub__content.not-fixed { /* retained for JS toggling compatibility */ }
   
       /* small devices tweaks */
       @media (max-width: 768px) {
-        .fratelli-video-two-desktop-scrub__container h1 { font-size: 28px; margin-top: 3rem; }
-        .fratelli-video-two-desktop-scrub__container h2 { font-size: 20px; padding-right: 0; }
-        .fratelli-video-two-desktop-scrub__container p { font-size: 16px; padding-right: 0; }
-        .fratelli-video-two-desktop-scrub__content.is-section-bottom { padding: 16px 20px; border-radius: 8px 8px 0 0; }
+        .fratelli-video-last-mobile-scrub__container h1 { font-size: 28px; margin-top: 3rem; }
+        .fratelli-video-last-mobile-scrub__container h2 { font-size: 20px; padding-right: 0; }
+        .fratelli-video-last-mobile-scrub__container p { font-size: 16px; padding-right: 0; }
+        .fratelli-video-last-mobile-scrub__content.is-section-bottom { padding: 16px 20px; border-radius: 8px 8px 0 0; }
       }
     </style>
   
-    <div class="scrolly-video-two-desktop-fixed-2-wrapper">
-      <div id="scrolly-video-two-desktop-fixed-2-container" aria-hidden="true"></div>
+    <div class="scrolly-video-last-mobile-fixed-2-wrapper">
+      <div id="scrolly-video-last-mobile-fixed-2-container" aria-hidden="true"></div>
   
-      <div class="scrolly-video-two-desktop-fixed-2-loading" id="scrolly-video-two-desktop-fixed-2-loading">
+      <div class="scrolly-video-last-mobile-fixed-2-loading" id="scrolly-video-last-mobile-fixed-2-loading">
         Loading video...
       </div>
     </div>
@@ -172,16 +173,16 @@ Drop into sections/ and add to a page.
     JS will add the `.is-bottom-fixed` class to fix it to the viewport bottom.
     {%- endcomment -%}
   
-    <div class="fratelli-video-two-desktop-scrub__content not-fixed" data-over-content>
-      <div class="fratelli-video-two-desktop-scrub__container" id="jason-{{ section.id }}">
-        <div class="fratelli-video-two-desktop-scrub__content-inner">
-          <h1 id="jason-h1-{{ section.id }}">Pour more into every moment</h1>
-          <p id="jason-p-{{ section.id }}">
-            Be it a quiet evening or a grand celebration, our wines bring richness and artistry to every occasion because there’s something for everyone
-          </p>
-          <div style="margin-top: 1.25rem;">
-            <button type="button" class="fratelli-video-scrub__explore-btn" id="jason-btn-{{ section.id }}">EXPLORE OUR RANGE</button>
-          </div>
+    <div class="fratelli-video-last-mobile-scrub__content not-fixed" data-over-content>
+      <div class="fratelli-video-last-mobile-scrub__container" id="jason-{{ section.id }}">
+        <div class="fratelli-video-last-mobile-scrub__content-inner">
+            <h1 id="jason-h1-{{ section.id }}">Vineyard inspired artisanal cheese</h1>
+            <p id="jason-p-{{ section.id }}">
+              Handcrafted in small batches, our artisanal cheeses are designed to pair perfectly with Fratelli wines, bringing indulgence full circle.
+            </p>
+            <div style="margin-top: 1.25rem;">
+              <button type="button" class="fratelli-video-scrub__explore-btn" id="jason-btn-{{ section.id }}">SAVOR THE PRICING</button>
+            </div>
         </div>
       </div>
     </div>
@@ -192,11 +193,11 @@ Drop into sections/ and add to a page.
     <script>
       (function () {
         // Hard-coded video url (replace with your own or swap to a Liquid asset_url)
-        var VIDEO_SRC = 'https://cdn.shopify.com/videos/c/o/v/7ed7bbecce3442449c7d4edb655b31f9.mp4';
-        var CONTAINER_ID = 'scrolly-video-two-desktop-fixed-2-container';
-        var LOADING_ID = 'scrolly-video-two-desktop-fixed-2-loading';
-        var SECTION_ID = 'scrolly-video-two-desktop-fixed-2-section';
-        var CONTENT_SELECTOR = '.fratelli-video-two-desktop-scrub__content';
+        var VIDEO_SRC = 'https://cdn.shopify.com/videos/c/o/v/4d9c7a78e1a14dd28f23b08c198b0a47.mp4';
+        var CONTAINER_ID = 'scrolly-video-last-mobile-fixed-2-container';
+        var LOADING_ID = 'scrolly-video-last-mobile-fixed-2-loading';
+        var SECTION_ID = 'scrolly-video-last-mobile-fixed-2-section';
+        var CONTENT_SELECTOR = '.fratelli-video-last-mobile-scrub__content';
   
         var SHOW_THRESHOLD = 0.7; // show when progress >= 70%
         var HIDE_THRESHOLD = 0.68; // hide when progress < 68% (hysteresis to prevent flicker)
@@ -343,58 +344,58 @@ Drop into sections/ and add to a page.
           // initial call to set correct position
           onScroll();
         }
-
+  
          // Set initial state
-         gsap.set('.fratelli-video-two-desktop-scrub__container', {
-            opacity: 0,
-          });
-
-        // Initialize GSAP ScrollTrigger
-      function initAnimations() {
-        // Wait for GSAP to be available
-        if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
-          console.warn('GSAP or ScrollTrigger not loaded, retrying...');
-          setTimeout(initAnimations, 100);
-          return;
-        }
-
-        // Create the fade-in animation
-        gsap.to('.fratelli-video-two-desktop-scrub__container', {
-          scrollTrigger: {
-            trigger: '.fratelli-video-two-desktop-scrub__content',
-            start: 'top 50%', // Start when top of element is 75% from top of viewport
-            end: 'top 25%',   // End when top of element is 25% from top of viewport
-            scrub: false,     // No scrub for this animation
-            markers: false,   // Set to true for debugging
-            onEnter: () => {
-              // Fade in the container
-              gsap.to('.fratelli-video-two-desktop-scrub__container', {
-                opacity: 1,
-                duration: 1.2,
-                ease: 'power2.out'
-              });
-            },
-            onLeaveBack: () => {
-              // Fade out when scrolling back up
-              gsap.to('.fratelli-video-two-desktop-scrub__container', {
-                opacity: 0,
-                duration: 0.6,
-                ease: 'power2.in'
-              });
-            }
-          }
+         gsap.set('.fratelli-video-last-mobile-scrub__container', {
+          opacity: 0,
         });
-      }
+  
+        // Initialize GSAP ScrollTrigger
+        function initAnimations() {
+          // Wait for GSAP to be available
+          if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
+            console.warn('GSAP or ScrollTrigger not loaded, retrying...');
+            setTimeout(initAnimations, 100);
+            return;
+          }
+  
+          // Create the fade-in animation
+          gsap.to('.fratelli-video-last-mobile-scrub__container', {
+            scrollTrigger: {
+              trigger: '.fratelli-video-last-mobile-scrub__content',
+              start: 'top 65%',
+              end: 'top 10%',
+              scrub: false,
+              markers: false,
+              onEnter: () => {
+                // Fade in the container
+                gsap.to('.fratelli-video-last-mobile-scrub__container', {
+                  opacity: 1,
+                  duration: 1.2,
+                  ease: 'power2.out'
+                });
+              },
+              onLeaveBack: () => {
+                // Fade out when scrolling back up
+                gsap.to('.fratelli-video-last-mobile-scrub__container', {
+                  opacity: 0,
+                  duration: 0.6,
+                  ease: 'power2.in'
+                });
+              }
+            }
+          });
+        }
   
         // bootstrap
         whenLibraryReady(function() {
           initScrollyVideo();
           wireScroll();
           // Initialize animations after a short delay to ensure GSAP is loaded
-        setTimeout(initAnimations, 500);
-        
-        // Also try initializing on window load in case GSAP loads after our script
-        window.addEventListener('load', initAnimations);
+          setTimeout(initAnimations, 500);
+          
+          // Also try initializing on window load in case GSAP loads after our script
+          window.addEventListener('load', initAnimations);
         });
   
         // safety: if DOMContentLoaded hasn't fired, init when ready
