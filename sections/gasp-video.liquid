@@ -1,8 +1,7 @@
 {% comment %}
   sections/first-video-and-content.liquid
   - Canvas-based video scrub section (user's FirstVideo) + content (FullSceenVideoContent).
-  - Fixes and scopes GSAP animations for the "jason" content.
-  - Video src: {{ 'Video_2.mp4' | asset_url }}
+  - Video src: {{ 'Video_2.mp4' | asset_url }} (hardcoded example url in <source>)
   - TRACK_VH = 250 (section height).
   - STEP = 1/30 (30 fps).
   - Schema max_blocks: 1.
@@ -91,25 +90,25 @@
 
     /* Mobile styles */
     @media (max-width: 1023px) {
-      .jason img { 
+      .jason img {
         min-width: auto;
         max-width: 100%;
         height: auto;
       }
-      .json h1 {
+      .jason h1 {
         margin-top: 0rem;
       }
     }
-    
+
     /* Desktop styles */
     @media (min-width: 1024px) {
-      .jason { 
-        flex-direction: row; 
+      .jason {
+        flex-direction: row;
       }
-      .first-video-content { 
-        padding: 0; 
+      .first-video-content {
+        padding: 0;
       }
-      .jason img { 
+      .jason img {
         min-width: 700px;
       }
     }
@@ -191,6 +190,7 @@
         webkit-playsinline
         x-webkit-airplay="allow"
       >
+        <!-- hardcoded mp4 source example; replace with your asset_url if required -->
         <source src="https://cdn.shopify.com/videos/c/o/v/aa8ea38fecb6431ebc55c842becc04eb.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </video>
@@ -223,143 +223,211 @@
     (function () {
       var sectionId = '{{ section.id }}';
 
-      /* ------------------- Video scrub code (unchanged) ------------------- */
-      (function videoScrub() {
+      /* ------------------- Utility loader ------------------- */
+      function loadScriptOnce(src) {
+        return new Promise(function (resolve, reject) {
+          if (document.querySelector('script[src="' + src + '"]')) { resolve(); return; }
+          var s = document.createElement('script');
+          s.src = src;
+          s.async = true;
+          s.onload = resolve;
+          s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
+
+      /* ------------------- GSAP-powered video scrub ------------------- */
+      (function gsapVideoScrub() {
         var wrapper = document.getElementById('first-vd-wrapper-' + sectionId);
         var pin = document.getElementById('first-vd-pin-' + sectionId);
         var canvas = document.getElementById('first-vd-canvas-' + sectionId);
         var video = document.getElementById('first-vd-video-' + sectionId);
         if (!wrapper || !pin || !canvas || !video) return;
 
-        var ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+        // ensure video does not loop
+        try { video.loop = false; } catch (e) {}
 
+        var ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
         var duration = 0;
-        var startY = 0;
-        var endY = 0;
-        var seeking = false;
-        var pending = null;
-        var rAF = 0;
+        var raf = null;
+        var pendingSeek = null;
+        var isSeeking = false;
 
         function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
 
-        function setAbsoluteAt(y) {
-          pin.style.position = 'absolute';
-          pin.style.top = y + 'px';
-          pin.style.left = '0';
-          pin.style.right = '0';
-          pin.style.height = '100vh';
-          pin.style.width = '100%';
-        }
-
-        function setFixedTop() {
-          pin.style.position = 'fixed';
-          pin.style.top = '0';
-          pin.style.left = '0';
-          pin.style.right = '0';
-          pin.style.height = '100vh';
-          pin.style.width = '100%';
-        }
-
-        function updatePin() {
-          var rect = wrapper.getBoundingClientRect();
-          var vh = window.innerHeight || document.documentElement.clientHeight;
-          if (rect.top > 0) {
-            setAbsoluteAt(0);
-            return;
-          }
-          if (rect.bottom <= vh) {
-            setAbsoluteAt(wrapper.offsetHeight - vh);
-            return;
-          }
-          setFixedTop();
-        }
-
-        function measure() {
-          var rect = wrapper.getBoundingClientRect();
-          var pageY = window.pageYOffset || document.documentElement.scrollTop || 0;
-          startY = pageY + rect.top;
-          endY = startY + wrapper.offsetHeight - window.innerHeight;
-          updatePin();
-        }
-
-        function draw() {
+        function drawFrame() {
           try { ctx.drawImage(video, 0, 0, canvas.width, canvas.height); } catch (e) {}
         }
 
-        function doSeek(t) {
-          seeking = true;
+        function onSeeked() {
+          // draw the frame for the newly-seeked time
+          drawFrame();
+          isSeeking = false;
+          if (pendingSeek !== null) {
+            var next = pendingSeek;
+            pendingSeek = null;
+            seekTo(next);
+          }
+        }
+
+        function seekTo(time) {
+          // clamp and set seeking flag; use fastSeek when available for better performance
+          var t = clamp(time, 0, Math.max(0, duration - 1e-6));
+          isSeeking = true;
           try {
             if (typeof video.fastSeek === 'function') video.fastSeek(t);
             else video.currentTime = t;
           } catch (e) {
-            seeking = false;
+            // fallback: queue
+            try { video.currentTime = t; } catch (e) {}
+            isSeeking = false;
           }
         }
-
-        function onSeeked() {
-          draw();
-          if (pending != null) {
-            var next = pending;
-            pending = null;
-            doSeek(next);
-          } else {
-            seeking = false;
-          }
-        }
-
-        function onScrollTick() {
-          rAF = 0;
-          var pageY = window.pageYOffset || document.documentElement.scrollTop || 0;
-          var prog = (pageY - startY) / Math.max(1, endY - startY);
-          var p = clamp(prog, 0, 1);
-          var tRaw = p * duration;
-          var STEP = 1 / 30;
-          var t = clamp(Math.round(tRaw / STEP) * STEP, 0, Math.max(0, duration - 1e-6));
-          if (!seeking) doSeek(t);
-          else pending = t;
-          updatePin();
-        }
-
-        function onScroll() { if (!duration) return; if (!rAF) rAF = requestAnimationFrame(onScrollTick); }
 
         function onResize() {
-          canvas.width = video.videoWidth || canvas.clientWidth || window.innerWidth;
-          canvas.height = video.videoHeight || canvas.clientHeight || window.innerHeight;
-          measure();
-          draw();
+          // keep canvas sized to viewport/pin area - use video intrinsic for aspect if available
+          var vw = pin.clientWidth || window.innerWidth;
+          var vh = pin.clientHeight || window.innerHeight;
+          // calculate canvas size preserving video's aspect ratio if we have it
+          var vidW = video.videoWidth || vw;
+          var vidH = video.videoHeight || vh;
+          var vidRatio = vidW && vidH ? vidW / vidH : vw / vh;
+
+          var canvasW = vw;
+          var canvasH = Math.round(canvasW / vidRatio);
+
+          // if canvas height smaller than viewport, expand by height
+          if (canvasH < vh) {
+            canvasH = vh;
+            canvasW = Math.round(canvasH * vidRatio);
+          }
+
+          canvas.width = canvasW;
+          canvas.height = canvasH;
+          // center-draw via CSS object-fit like behavior is implicit when drawImage uses full canvas area
+          drawFrame();
+          // Refresh ScrollTrigger to recalc pin/end
+          if (window.gsap && window.ScrollTrigger) {
+            try { window.ScrollTrigger.refresh(); } catch (e) {}
+          }
         }
 
+        // measure and create ScrollTrigger once metadata available
+        function createScrollTrigger() {
+          if (!window.gsap || !window.ScrollTrigger) return;
+          var gsap = window.gsap;
+          var ScrollTrigger = window.ScrollTrigger;
+          gsap.registerPlugin(ScrollTrigger);
+
+          // make sure we have a valid duration
+          duration = video.duration || 0;
+          if (!duration || !isFinite(duration)) duration = 0;
+
+          // set canvas initial size
+          onResize();
+
+          // compute track length: wrapper.offsetHeight - viewport (so pinned for that amount)
+          var trackLength = Math.max(0, wrapper.offsetHeight - window.innerHeight);
+
+          // Ensure any existing ScrollTrigger for this wrapper is killed
+          ScrollTrigger.getAll().forEach(function (st) {
+            if (st.trigger === wrapper || st.trigger === pin) {
+              try { st.kill(); } catch (e) {}
+            }
+          });
+
+          // Create ScrollTrigger that pins the video and scrubs the playhead
+          gsap.to({}, {
+            // dummy tween; we will use onUpdate to drive video currentTime
+            ease: "none",
+            duration: 1,
+            scrollTrigger: {
+              trigger: wrapper,
+              start: "top top",
+              end: "+=" + trackLength,
+              scrub: true,
+              pin: pin,
+              // anticipate for smoother pin behavior
+              invalidateOnRefresh: true,
+              onUpdate: function (self) {
+                // self.progress is 0..1 across the trackLength
+                var p = clamp(self.progress, 0, 1);
+                var targetTime = p * duration;
+                // round to frame-step for consistent seeking (30fps)
+                var STEP = 1 / 30;
+                var rounded = Math.round(targetTime / STEP) * STEP;
+                // if currently seeking, queue
+                if (isSeeking) {
+                  pendingSeek = rounded;
+                } else {
+                  seekTo(rounded);
+                }
+              },
+              onRefresh: function () {
+                // on refresh recalc layout if needed
+                onResize();
+              }
+            }
+          });
+
+          // make sure we seek to 0 initially and render first frame
+          if (duration > 0) seekTo(0);
+        }
+
+        // Video event listeners
         function onLoadedMeta() {
           duration = video.duration || 0;
           onResize();
+          // decode first frame by attempting to play briefly and pause -- many browsers require a play to make frames available
+          // but we will not leave it playing
           try {
             var p = video.play();
-            if (p && typeof p.then === 'function') { p.then(function(){ try{video.pause();}catch(e){}; }).catch(function(){}); }
+            if (p && typeof p.then === 'function') {
+              p.then(function () { try { video.pause(); } catch (e) {} }).catch(function () {});
+            } else {
+              try { video.pause(); } catch (e) {}
+            }
           } catch (e) {}
-          doSeek(0);
+          // ensure we have the draw from 0
+          seekTo(0);
+          // attach seeked -> draw
+          video.addEventListener('seeked', onSeeked);
+          // create ScrollTrigger now that we have metadata
+          createScrollTrigger();
         }
 
-        video.addEventListener('loadedmetadata', onLoadedMeta);
-        video.addEventListener('seeked', onSeeked);
-        window.addEventListener('scroll', onScroll, { passive: true });
+        // setup listeners and initial measure
         window.addEventListener('resize', onResize);
-        if (video.readyState >= 1) onLoadedMeta();
-        else try { video.load(); } catch (e) {}
+        video.addEventListener('loadedmetadata', onLoadedMeta);
 
-        setTimeout(measure, 50);
-        setTimeout(function(){ if (!endY || endY === 0) measure(); }, 300);
+        // If metadata already loaded, run immediately
+        if (video.readyState >= 1 && video.duration) {
+          onLoadedMeta();
+        } else {
+          try { video.load(); } catch (e) {}
+        }
 
+        // Cleanup for single-page editors / Shopify section events
         function cleanup() {
-          try { video.removeEventListener('loadedmetadata', onLoadedMeta); } catch(e) {}
-          try { video.removeEventListener('seeked', onSeeked); } catch(e) {}
-          try { window.removeEventListener('scroll', onScroll); } catch(e) {}
-          try { window.removeEventListener('resize', onResize); } catch(e) {}
-          if (rAF) cancelAnimationFrame(rAF);
+          try { video.removeEventListener('loadedmetadata', onLoadedMeta); } catch (e) {}
+          try { video.removeEventListener('seeked', onSeeked); } catch (e) {}
+          try { window.removeEventListener('resize', onResize); } catch (e) {}
+          if (raf) cancelAnimationFrame(raf);
+          // kill ScrollTrigger instances we created for this wrapper/pin
+          if (window.gsap && window.ScrollTrigger) {
+            try {
+              window.ScrollTrigger.getAll().forEach(function (st) {
+                if (st.trigger === wrapper || st.trigger === pin) {
+                  try { st.kill(); } catch (e) {}
+                }
+              });
+            } catch (e) {}
+          }
         }
 
         if (window.Shopify && window.Shopify.designMode) {
-          window.addEventListener('shopify:section:unload', function () { cleanup(); });
-          window.addEventListener('shopify:section:load', function () { setTimeout(measure, 50); });
+          window.addEventListener('shopify:section:unload', cleanup);
+          window.addEventListener('shopify:section:load', function () { setTimeout(function(){ if (video.readyState >= 1) onLoadedMeta(); else try{video.load();}catch(e){} }, 60); });
         }
         window.addEventListener('pagehide', cleanup);
         window.addEventListener('beforeunload', cleanup);
@@ -404,19 +472,6 @@
             gsap.set(jason, { y: 40, opacity: 0 });
           } catch (e) {}
 
-          // timeline placeholder similar to original (kept in case you want to add timeline steps)
-          try {
-            gsap.timeline({
-              scrollTrigger: {
-                trigger: content1,
-                start: "top 90%",
-                end: "100% center",
-                scrub: true,
-                // markers: true // enable while debugging
-              }
-            });
-          } catch (e) {}
-
           // animate jason into place while scrolling
           try {
             gsap.to(jason, {
@@ -429,15 +484,12 @@
                 start: "top 90%",
                 end: "100% center",
                 scrub: 2,
-                // markers: true // enable for debug
+                // markers: true // enable for debugging
               }
             });
           } catch (e) {
             console.warn('jason animation error', e);
           }
-
-          // Also create a small offset animation for the header if you want (uncomment to enable)
-          // gsap.fromTo(contentSection.querySelector('h1'), { y: 20, opacity: 0 }, { y:0, opacity:1, scrollTrigger: { trigger: content1, start: "top 90%", end: "100% center", scrub: true }});
         }
 
         // load scripts then init
