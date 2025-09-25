@@ -72,9 +72,9 @@
     autoRaf: true,
     duration: 0,
     smoothTouch: true,
-    touchMultiplier: 3.0,
+    touchMultiplier: 2.0,
     smoothWheel: true,
-    wheelMultiplier: 3.0,
+    wheelMultiplier: 2.0,
   };
 
   var mobileConfig = {
@@ -85,12 +85,12 @@
     duration: 0,
     smoothTouch: true,
     // reduce multiplier so one finger swipe moves less distance (smoother)
-    touchMultiplier: 3.0,
+    touchMultiplier: 2.0,
     // enable syncTouch to mimic native touch inertia (helps on newer iOS)
     syncTouch: true,
     syncTouchLerp: 0.08,
     smoothWheel: false,
-    wheelMultiplier: 3.0,
+    wheelMultiplier: 2.0,
   };
 
   var config = isTouch ? mobileConfig : desktopConfig;

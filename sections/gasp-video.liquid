@@ -14,6 +14,8 @@ Drop into sections/ and add to a page.
       height: 200vh; /* adjust as needed */
       position: relative;
       background: #000;
+      /* Isolate painting/layout inside this section to reduce jank */
+      contain: layout paint;
     }
 
     /* Sticky wrapper that stays 100vh in viewport */
@@ -28,6 +30,9 @@ Drop into sections/ and add to a page.
       overflow: hidden;
       z-index: 1;
       background: #000;
+      /* Promote to its own layer to reduce scroll-time jank */
+      transform: translateZ(0);
+      will-change: transform;
     }
 
     /* Mount point for the library */
@@ -35,6 +40,15 @@ Drop into sections/ and add to a page.
       width: 100%;
       height: 100%;
       position: relative;
+      /* Promote to its own layer to stabilize transforms of inner video/canvas */
+      transform: translateZ(0);
+      will-change: transform;
+    }
+
+    /* Also promote immediate children (video/canvas) created by the library */
+    #scrolly-video-fixed-2-container > * {
+      transform: translateZ(0);
+      will-change: transform;
     }
 
     /* Loading label */
@@ -64,7 +78,12 @@ Drop into sections/ and add to a page.
       visibility: hidden;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 220ms ease, visibility 0s linear 220ms;
+      /* Avoid layout shifts: animate only transform/opacity on its own layer */
+      transform: translateY(8px);
+      will-change: opacity, transform;
+      backface-visibility: hidden;
+      contain: paint;
+      transition: opacity 200ms ease, transform 240ms ease-out, visibility 0s linear 220ms;
     }
 
     .fratelli-video-scrub__content-inner { max-width: 56rem; margin-bottom: 2.5rem; }
@@ -183,7 +202,6 @@ Drop into sections/ and add to a page.
 
       // library instance (populated after init)
       var scrollyInstance = null;
-      var hasSettledAtBottom = false; // ensure we only force-align once
 
       // defensive timeout for script load
       function whenLibraryReady(cb) {
@@ -275,16 +293,6 @@ Drop into sections/ and add to a page.
         try {
           if (contentEl) {
             if (progress >= SHOW_THRESHOLD) {
-              // On first crossing, align section bottom to viewport bottom to avoid flicker
-              if (!hasSettledAtBottom) {
-                var targetY = sectionTop + sectionHeight - vpH;
-                var currentY = docTop;
-                if (Math.abs(currentY - targetY) > 2) {
-                  window.scrollTo({ top: targetY, behavior: 'auto' });
-                }
-                hasSettledAtBottom = true;
-              }
-
               if (!contentEl.classList.contains('is-section-bottom')) {
                 contentEl.classList.add('is-section-bottom');
                 contentEl.classList.remove('not-fixed');
@@ -300,7 +308,6 @@ Drop into sections/ and add to a page.
                 var btn = contentEl.querySelector('button, a');
                 if (btn) btn.setAttribute('tabindex', '-1');
               }
-              hasSettledAtBottom = false;
             }
           }
         } catch (e) {
