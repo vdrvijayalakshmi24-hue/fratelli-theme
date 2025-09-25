@@ -98,7 +98,11 @@
         var lastRenderedTime = -1; // remember last drawn time
         var IS_TOUCH = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
         var SEEK_EPS = IS_TOUCH ? 0.08 : 0.02; // larger threshold on touch to avoid micro-seeks
+        var RATE_LIMIT_MS = IS_TOUCH ? 50 : 16; // cap seek frequency on touch
+        var lastSeekAt = 0;
         var rafId = null;
+        var supportsRVFC = typeof video.requestVideoFrameCallback === 'function';
+        var waitingForFrame = false;
 
         function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
 
@@ -111,6 +115,7 @@
 
         function onSeeked() {
           isSeeking = false;
+          if (supportsRVFC) return; // rVFC path will handle drawing
           // queue a draw on rAF to ensure decoded frame is ready
           if (rafId) cancelAnimationFrame(rafId);
           rafId = requestAnimationFrame(function () {
@@ -119,10 +124,27 @@
             if (pendingTime !== null) {
               var next = pendingTime;
               pendingTime = null;
-              // if change is significant, issue another seek
               if (Math.abs(next - video.currentTime) > SEEK_EPS) seek(next);
             }
           });
+        }
+
+        function requestDrawNextFrame() {
+          if (supportsRVFC) {
+            waitingForFrame = true;
+            try {
+              video.requestVideoFrameCallback(function(_now, metadata){
+                waitingForFrame = false;
+                var t = (metadata && typeof metadata.mediaTime === 'number') ? metadata.mediaTime : video.currentTime;
+                drawFrameIfNeeded(t);
+                if (pendingTime !== null && Math.abs(pendingTime - (video.currentTime || 0)) > SEEK_EPS) {
+                  var next = pendingTime; pendingTime = null; seek(next);
+                }
+              });
+            } catch(e) { waitingForFrame = false; }
+          } else {
+            // fallback handled in onSeeked()
+          }
         }
 
         function seek(t) {
@@ -137,6 +159,13 @@
           }
           // ensure video is not trying to play while we scrub
           try { video.pause(); } catch (e) {}
+          // rate limit seeks on touch and while waiting for a frame
+          var nowTs = Date.now();
+          if (waitingForFrame || (nowTs - lastSeekAt) < RATE_LIMIT_MS) {
+            pendingTime = target;
+            return;
+          }
+          lastSeekAt = nowTs;
           isSeeking = true;
           try {
             if (typeof video.fastSeek === 'function') video.fastSeek(target);
@@ -145,6 +174,7 @@
             // fallback to setting currentTime directly; some browsers may throw
             try { video.currentTime = target; } catch (e) { isSeeking = false; }
           }
+          requestDrawNextFrame();
         }
 
         function sizeCanvas() {
@@ -219,8 +249,8 @@
                   return;
                 }
 
-                // normal case: if seeking in progress, store pending; otherwise seek
-                if (isSeeking) {
+                // normal case: queue seek with rate-limiting; if a seek is in-flight, just store pending
+                if (isSeeking || waitingForFrame) {
                   pendingTime = targetTime;
                 } else {
                   seek(targetTime);
