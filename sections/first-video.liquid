@@ -92,30 +92,36 @@ Drop into sections/ and add to a page.
       transition: opacity 200ms ease, transform 240ms ease-out, visibility 0s linear 220ms;
     }
 
-    .fratelli-video-scrub__content-inner { max-width: 56rem; margin-bottom: 2.5rem; }
+    .fratelli-video-scrub__content-inner { max-width: 56rem; align-self: center; }
 
     .fratelli-video-scrub__container h1 {
       font-family: "Utile", sans-serif;
       text-transform: uppercase;
       color: #F4CF80;
-      font-size: 48px;
-      margin-top: 6rem;
-    }
-    .fratelli-video-scrub__container h2 {
-      font-family: "Playfair Display", serif;
-      margin-bottom: 1.75rem;
-      padding-right: 5rem;
-      color: #FFFFF8;
-      font-size: 32px;
-      font-style: italic;
-      letter-spacing: -0.06em;
+      font-size: 36px;
     }
     .fratelli-video-scrub__container p {
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      padding-right: 7rem;
       color: #FFFFF8;
-      font-size: 20px;
-      letter-spacing: -0.04em;
+      font-size: 16px;
+    }
+
+    .fratelli-video-scrub__container {
+      display: flex;
+      justify-content: flex-end;
+      height: 100%;
+      gap: 20px;
+      opacity: 0; /* Start with 0 opacity, GSAP will animate this */
+    }
+    @media(min-width: 1024px) {
+      .fratelli-video-scrub__container {
+        align-items: flex-end;
+      }
+    }
+    @media (max-width: 768px) {
+      .fratelli-video-scrub__container {
+        flex-direction: column;     
+      }
     }
 
     .fratelli-video-scrub__explore-btn {
@@ -144,6 +150,19 @@ Drop into sections/ and add to a page.
       padding: 24px 32px;
       -webkit-backdrop-filter: blur(6px);
       backdrop-filter: blur(6px);
+      height: 50%;
+    }
+
+    @media (min-width: 1024px) {
+      .fratelli-video-scrub__content {
+        padding: 20px 0px !important;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .fratelli-video-scrub__content.is-section-bottom {
+        height: 25%;
+      }
     }
 
     /* hide the content while it's not centered (optional fade) */
@@ -173,14 +192,16 @@ Drop into sections/ and add to a page.
 
   <div class="fratelli-video-scrub__content not-fixed" data-over-content>
     <div class="fratelli-video-scrub__container" id="jason-{{ section.id }}">
+      <div class="image-section">
+        <img width="100%" height="auto" src="https://cdn.shopify.com/s/files/1/0491/6628/7016/files/Section_1.jpg?v=1758619356" alt="Section_1" />
+      </div>
       <div class="fratelli-video-scrub__content-inner">
-        <h1 id="jason-h1-{{ section.id }}">Explore Range of Fratelli</h1>
-        <h2 id="jason-h2-{{ section.id }}">From Akluj's Soil</h2>
+        <h1 id="jason-h1-{{ section.id }}">India's finest Wine Makers</h1>
         <p id="jason-p-{{ section.id }}">
-          Their hands don't just plant vines. they planted a vision. they dont dont follow europe. they carved india into every bottle.
+          From the heart of Akluj to tables across the world, Fratelli is more than wine, it's a story of heritage, craftsmanship and seven brothers bound by a dream. Every bottle is a testament to passion and the spirit of Pour More Into Life.
         </p>
         <div style="margin-top: 1.25rem;">
-          <button type="button" class="fratelli-video-scrub__explore-btn" id="jason-btn-{{ section.id }}">Explore</button>
+          <button type="button" class="fratelli-video-scrub__explore-btn" id="jason-btn-{{ section.id }}">DISCOVER OUR STORY</button>
         </div>
       </div>
     </div>
@@ -198,8 +219,8 @@ Drop into sections/ and add to a page.
       var SECTION_ID = 'scrolly-video-fixed-2-section';
       var CONTENT_SELECTOR = '.fratelli-video-scrub__content';
 
-      var SHOW_THRESHOLD = 0.7; // show when progress >= 70%
-      var HIDE_THRESHOLD = 0.68; // hide when progress < 68% (hysteresis to prevent flicker)
+      var SHOW_THRESHOLD = 0.32; // show when progress >= 70%
+      var HIDE_THRESHOLD = 0.3; // hide when progress < 68% (hysteresis to prevent flicker)
 
       var loadingEl = document.getElementById(LOADING_ID);
       var sectionEl = document.getElementById(SECTION_ID);
@@ -344,10 +365,53 @@ Drop into sections/ and add to a page.
         onScroll();
       }
 
+      // Initialize GSAP ScrollTrigger
+      function initAnimations() {
+        // Wait for GSAP to be available
+        if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
+          console.warn('GSAP or ScrollTrigger not loaded, retrying...');
+          setTimeout(initAnimations, 100);
+          return;
+        }
+
+        // Create the fade-in animation
+        gsap.to('.fratelli-video-scrub__container', {
+          scrollTrigger: {
+            trigger: '.fratelli-video-scrub__content',
+            start: 'top 50%', // Start when top of element is 75% from top of viewport
+            end: 'top 20%',   // End when top of element is 25% from top of viewport
+            scrub: false,     // No scrub for this animation
+            markers: false,   // Set to true for debugging
+            onEnter: () => {
+              // Fade in the container
+              gsap.to('.fratelli-video-scrub__container', {
+                opacity: 1,
+                duration: 1.2,
+                ease: 'power2.out'
+              });
+            },
+            onLeaveBack: () => {
+              // Fade out when scrolling back up
+              gsap.to('.fratelli-video-scrub__container', {
+                opacity: 0,
+                duration: 0.6,
+                ease: 'power2.in'
+              });
+            }
+          }
+        });
+      }
+
       // bootstrap
       whenLibraryReady(function() {
         initScrollyVideo();
         wireScroll();
+        
+        // Initialize animations after a short delay to ensure GSAP is loaded
+        setTimeout(initAnimations, 500);
+        
+        // Also try initializing on window load in case GSAP loads after our script
+        window.addEventListener('load', initAnimations);
       });
 
       // safety: if DOMContentLoaded hasn't fired, init when ready

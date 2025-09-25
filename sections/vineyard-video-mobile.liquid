@@ -90,6 +90,9 @@ Drop into sections/ and add to a page.
       backface-visibility: hidden;
       contain: paint;
       transition: opacity 200ms ease, transform 240ms ease-out, visibility 0s linear 220ms;
+      display: flex;
+      align-items: flex-end;
+      text-align: center;
     }
 
     .fratelli-video-three-scrub__content-inner { max-width: 56rem; margin-bottom: 2.5rem; }
@@ -144,6 +147,7 @@ Drop into sections/ and add to a page.
       padding: 24px 32px;
       -webkit-backdrop-filter: blur(6px);
       backdrop-filter: blur(6px);
+      height: 25%;
     }
 
     /* hide the content while it's not centered (optional fade) */
@@ -174,13 +178,15 @@ Drop into sections/ and add to a page.
   <div class="fratelli-video-three-scrub__content not-fixed" data-over-content>
     <div class="fratelli-video-three-scrub__container" id="jason-{{ section.id }}">
       <div class="fratelli-video-three-scrub__content-inner">
-        <h1 id="jason-h1-{{ section.id }}">Explore Range of Fratelli</h1>
-        <h2 id="jason-h2-{{ section.id }}">From Akluj's Soil</h2>
+        <h1 id="jason-h1-{{ section.id }}">Indian terroir,Italian Winemaking</h1>
         <p id="jason-p-{{ section.id }}">
-          Their hands don't just plant vines. they planted a vision. they dont dont follow europe. they carved india into every bottle.
+          It is the hands behind our vines that define Fratelli, guided by Italian mastery, shaped by patience and driven by passion. 
+        </p>
+        <p>
+          Each pour reflects their artistry, bringing balance, depth and distinction to life.
         </p>
         <div style="margin-top: 1.25rem;">
-          <button type="button" class="fratelli-video-scrub__explore-btn" id="jason-btn-{{ section.id }}">Explore</button>
+          <button type="button" class="fratelli-video-scrub__explore-btn" id="jason-btn-{{ section.id }}">KNOW MORE</button>
         </div>
       </div>
     </div>
@@ -344,10 +350,58 @@ Drop into sections/ and add to a page.
         onScroll();
       }
 
+      // Set initial state
+      gsap.set('.fratelli-video-three-scrub__container', {
+        opacity: 0,
+      });
+
+      // Initialize GSAP ScrollTrigger
+      function initAnimations() {
+        // Wait for GSAP to be available
+        if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
+          console.warn('GSAP or ScrollTrigger not loaded, retrying...');
+          setTimeout(initAnimations, 100);
+          return;
+        }
+
+
+        // Create the fade-in animation
+        gsap.to('.fratelli-video-three-scrub__container', {
+          scrollTrigger: {
+            trigger: '.fratelli-video-three-scrub__content',
+            start: 'top 60%',
+            end: 'top bottom',
+            scrub: false,
+            markers: false,
+            onEnter: () => {
+              // Fade in the container
+              gsap.to('.fratelli-video-three-scrub__container', {
+                opacity: 1,
+                duration: 1.2,
+                ease: 'power2.out'
+              });
+            },
+            onLeaveBack: () => {
+              // Fade out when scrolling back up
+              gsap.to('.fratelli-video-three-scrub__container', {
+                opacity: 0,
+                duration: 0.6,
+                ease: 'power2.in'
+              });
+            }
+          }
+        });
+      }
+
       // bootstrap
       whenLibraryReady(function() {
         initScrollyVideo();
         wireScroll();
+        // Initialize animations after a short delay to ensure GSAP is loaded
+        setTimeout(initAnimations, 500);
+        
+        // Also try initializing on window load in case GSAP loads after our script
+        window.addEventListener('load', initAnimations);
       });
 
       // safety: if DOMContentLoaded hasn't fired, init when ready

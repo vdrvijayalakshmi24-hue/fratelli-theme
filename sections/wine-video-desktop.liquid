@@ -74,6 +74,7 @@ Drop into sections/ and add to a page.
       /* --- Content, hidden by default, anchored to section bottom --- */
       /* Will become visible and styled at >=70% progress */
       .fratelli-video-two-desktop-scrub__content {
+        text-align: center;
         position: absolute;
         left: 0;
         right: 0;
@@ -98,23 +99,14 @@ Drop into sections/ and add to a page.
         font-family: "Utile", sans-serif;
         text-transform: uppercase;
         color: #F4CF80;
-        font-size: 48px;
+        font-size: 36px;
         margin-top: 6rem;
-      }
-      .fratelli-video-two-desktop-scrub__container h2 {
-        font-family: "Playfair Display", serif;
-        margin-bottom: 1.75rem;
-        padding-right: 5rem;
-        color: #FFFFF8;
-        font-size: 32px;
-        font-style: italic;
-        letter-spacing: -0.06em;
       }
       .fratelli-video-two-desktop-scrub__container p {
         font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
         padding-right: 7rem;
         color: #FFFFF8;
-        font-size: 20px;
+        font-size: 16px;
         letter-spacing: -0.04em;
       }
   
@@ -144,6 +136,16 @@ Drop into sections/ and add to a page.
         padding: 24px 32px;
         -webkit-backdrop-filter: blur(6px);
         backdrop-filter: blur(6px);
+        height: 25%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      @media (min-width: 1024px) {
+        .fratelli-video-two-desktop-scrub__content.is-section-bottom {
+          height: 12%;
+        }
       }
   
       /* hide the content while it's not centered (optional fade) */
@@ -174,13 +176,12 @@ Drop into sections/ and add to a page.
     <div class="fratelli-video-two-desktop-scrub__content not-fixed" data-over-content>
       <div class="fratelli-video-two-desktop-scrub__container" id="jason-{{ section.id }}">
         <div class="fratelli-video-two-desktop-scrub__content-inner">
-          <h1 id="jason-h1-{{ section.id }}">Explore Range of Fratelli</h1>
-          <h2 id="jason-h2-{{ section.id }}">From Akluj's Soil</h2>
+          <h1 id="jason-h1-{{ section.id }}">Pour more into every moment</h1>
           <p id="jason-p-{{ section.id }}">
-            Their hands don't just plant vines. they planted a vision. they dont dont follow europe. they carved india into every bottle.
+            Be it a quiet evening or a grand celebration, our wines bring richness and artistry to every occasion because there’s something for everyone
           </p>
           <div style="margin-top: 1.25rem;">
-            <button type="button" class="fratelli-video-scrub__explore-btn" id="jason-btn-{{ section.id }}">Explore</button>
+            <button type="button" class="fratelli-video-scrub__explore-btn" id="jason-btn-{{ section.id }}">EXPLORE OUR RANGE</button>
           </div>
         </div>
       </div>
@@ -343,11 +344,58 @@ Drop into sections/ and add to a page.
           // initial call to set correct position
           onScroll();
         }
+
+         // Set initial state
+         gsap.set('.fratelli-video-two-desktop-scrub__container', {
+            opacity: 0,
+          });
+
+        // Initialize GSAP ScrollTrigger
+      function initAnimations() {
+        // Wait for GSAP to be available
+        if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
+          console.warn('GSAP or ScrollTrigger not loaded, retrying...');
+          setTimeout(initAnimations, 100);
+          return;
+        }
+
+        // Create the fade-in animation
+        gsap.to('.fratelli-video-two-desktop-scrub__container', {
+          scrollTrigger: {
+            trigger: '.fratelli-video-two-desktop-scrub__content',
+            start: 'top 50%', // Start when top of element is 75% from top of viewport
+            end: 'top 25%',   // End when top of element is 25% from top of viewport
+            scrub: false,     // No scrub for this animation
+            markers: false,   // Set to true for debugging
+            onEnter: () => {
+              // Fade in the container
+              gsap.to('.fratelli-video-two-desktop-scrub__container', {
+                opacity: 1,
+                duration: 1.2,
+                ease: 'power2.out'
+              });
+            },
+            onLeaveBack: () => {
+              // Fade out when scrolling back up
+              gsap.to('.fratelli-video-two-desktop-scrub__container', {
+                opacity: 0,
+                duration: 0.6,
+                ease: 'power2.in'
+              });
+            }
+          }
+        });
+      }
   
         // bootstrap
         whenLibraryReady(function() {
           initScrollyVideo();
           wireScroll();
+          // Initialize animations after a short delay to ensure GSAP is loaded
+        setTimeout(initAnimations, 500);
+        
+        // Also try initializing on window load in case GSAP loads after our script
+        window.addEventListener('load', initAnimations);
         });
   
         // safety: if DOMContentLoaded hasn't fired, init when ready
