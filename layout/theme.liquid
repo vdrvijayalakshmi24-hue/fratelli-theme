@@ -82,15 +82,15 @@
     direction: 'vertical',
     autoRaf: true,
     // increase duration for slower, smoother interpolation on touch
-    duration: 1.5,
+    duration: 1.0,
     smoothTouch: true,
     // reduce multiplier so one finger swipe moves less distance (smoother)
-    touchMultiplier: 2.0,
+    touchMultiplier: 1.5,
     // enable syncTouch to mimic native touch inertia (helps on newer iOS)
     syncTouch: true,
     syncTouchLerp: 0.08,
     smoothWheel: false,
-    wheelMultiplier: 2.0,
+    wheelMultiplier: 1.5,
   };
 
   var config = isTouch ? mobileConfig : desktopConfig;
