@@ -97,8 +97,15 @@
       }
       @keyframes hero-{{ section.id }}-burst {
         0%   { transform: scale(1); opacity: 1; }
-        60%  { transform: scale(3.2); opacity: 1; }
-        100% { transform: scale(18); opacity: 0; }
+        10%   { transform: scale(10); opacity: 1; }
+        20%   { transform: scale(20); opacity: 1; }
+        30%   { transform: scale(30); opacity: 1; }
+        40%   { transform: scale(40); opacity: 1; }
+        50%   { transform: scale(50); opacity: 1; }
+        60%  { transform: scale(70); opacity: 1; }
+        70%  { transform: scale(80); opacity: 1; }
+        80%  { transform: scale(90); opacity: 1; }
+        100%  { transform: scale(100); opacity: 0; }
       }
       #hero-video-autoplay-{{ section.id }}.is-loaded .loading-overlay {
         animation: hero-{{ section.id }}-overlayFade 520ms ease-out forwards;
