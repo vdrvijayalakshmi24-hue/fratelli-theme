@@ -1,362 +1,187 @@
 {% comment %}
-sections/scrolly-video-last-mobile-fixed-2.liquid
-- Scrolly video (library-driven playback) with manual scroll->progress mapping.
-- Adds content block below the video; when scrub >= 70% the content becomes fixed to viewport bottom.
-Drop into sections/ and add to a page.
+sections/scrolly-video-last-mobile-fixed.liquid
+- Duplicated from scrolly-video-three-fixed-2.liquid
+- Uses new video source: https://cdn.shopify.com/videos/c/o/v/49f4e96f0c8a43fa90adad4efeaa9e52.mp4
+- All class names renamed to prevent conflicts.
 {% endcomment %}
 
-<section id="scrolly-video-last-mobile-fixed-2-section" class="scrolly-video-last-mobile-fixed-2-section">
+<section class="sv-last-mobile-section" id="sv4-last-mobile-{{ section.id }}">
     <style>
-      /* Parent section provides the scroll track */
-      .scrolly-video-last-mobile-fixed-2-section {
-        width: 100%;
-        /* Increase track if you want slower scrub per scroll distance */
-        height: 200vh; /* adjust as needed */
+      .sv-last-mobile-section {
         position: relative;
-        background: #000;
-        /* Isolate painting/layout inside this section to reduce jank */
-        contain: layout paint;
+        height: 200vh;         /* scroll length */
+        overflow: visible;
+        isolation: isolate;
+        background: #000;      /* safety background so it’s never blank */
       }
   
-      @media (min-width: 1024px) {
-        .scrolly-video-last-mobile-fixed-2-section {
-          height: 400vh;
-        }
+      /* Underlay container (we’ll sticky its child video/canvas) */
+      .sv4-video-last-mobile {
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;     /* ensure presence even before JS runs */
       }
-  
-      /* Sticky wrapper that stays 100vh in viewport */
-      .scrolly-video-last-mobile-fixed-2-wrapper {
+      /* Fallback/sticky behavior */
+      .sv4-video-last-mobile video,
+      .sv4-video-last-mobile canvas {
         position: sticky;
         top: 0;
+        width: 100%;
         height: 100vh;
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        z-index: 1;
+        display: block;
+        object-fit: cover;
+        z-index: 1 !important;
         background: #000;
-        /* Promote to its own layer to reduce scroll-time jank */
-        transform: translateZ(0);
-        will-change: transform;
       }
   
-      /* Mount point for the library */
-      #scrolly-video-last-mobile-fixed-2-container {
-        width: 100%;
-        height: 100%;
-        position: relative;
-        /* Promote to its own layer to stabilize transforms of inner video/canvas */
-        transform: translateZ(0);
-        will-change: transform;
-      }
-  
-      /* Also promote immediate children (video/canvas) created by the library */
-      #scrolly-video-last-mobile-fixed-2-container > * {
-        transform: translateZ(0);
-        will-change: transform;
-      }
-  
-      /* --- Content, hidden by default, anchored to section bottom --- */
-      /* Will become visible and styled at >=70% progress */
+      /* ---------- Overlay (kept visible; only inner fades) ---------- */
       .fratelli-video-last-mobile-scrub__content {
         position: absolute;
-        left: 0;
-        right: 0;
         bottom: 0;
         width: 100%;
-        z-index: 2;
+        z-index: 10;
         padding: 20px;
-        visibility: hidden;
-        opacity: 0;
-        pointer-events: none;
-        /* Avoid layout shifts: animate only transform/opacity on its own layer */
-        transform: translateY(8px);
-        will-change: opacity, transform;
-        backface-visibility: hidden;
-        contain: paint;
-        transition: opacity 200ms ease, transform 240ms ease-out, visibility 0s linear 220ms;
+  
+        /* DO NOT hide the whole overlay—only fade the inner */
+        pointer-events: auto;
+        transform: translateY(0);
         display: flex;
-        align-items: center;
+        align-items: flex-end;
         text-align: center;
+        display: flex;
+        justify-content: center;
       }
   
-      .fratelli-video-last-mobile-scrub__content-inner { max-width: 56rem; margin-bottom: 2.5rem; }
+      .fratelli-video-last-mobile-scrub__content-inner {
+        max-width: 56rem;
+        margin: 0 auto 2.5rem auto;
+        opacity: 0; /* GSAP will fade this in/out */
+      }
   
       .fratelli-video-last-mobile-scrub__container h1 {
-        font-family: "Utile", sans-serif;
-        color: #ffffff;
-        font-size: 36px;
-        font-weight: 600;
-        margin-top: 6rem;
+        font-family: "Utile", sans-serif; color: #ffffff;
+        font-size: 36px; font-weight: 600; margin-top: 6rem;
       }
       .fratelli-video-last-mobile-scrub__container p {
         font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-        padding-right: 7rem;
-        color: #FFFFF8;
-        font-size: 16px;
-        letter-spacing: -0.04em;
+        color: #FFFFF8; font-size: 16px; letter-spacing: -0.04em;
       }
-  
       .fratelli-video-last-mobile-scrub__explore-btn {
-        background: #fff;
-        color: #000;
-        border: none;
-        padding: 0.625rem 1.25rem;
-        border-radius: 20px;
-        font-weight: 600;
-        cursor: pointer;
+        background: #fff; color: #000; border: none; padding: 0.625rem 1.25rem;
+        border-radius: 20px; font-weight: 600; cursor: pointer;
       }
   
-      /* --- Section-bottom settled state (when progress >= 0.7) --- */
-      /* Position the content at the bottom of the section container */
+      /* Optional “near bottom” styling */
       .fratelli-video-last-mobile-scrub__content.is-section-bottom {
-        /* visible state */
-        visibility: visible;
-        opacity: 1;
-        pointer-events: auto;
-        transition: opacity 220ms ease;
-        /* visual treatment */
         background: linear-gradient(0deg, #503823 74.46%, rgba(0, 0, 0, 0) 100%);
         -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 100%);
         mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 100%);
-        border-radius: 12px 12px 0 0;
-        padding: 24px 32px;
-        -webkit-backdrop-filter: blur(6px);
-        backdrop-filter: blur(6px);
-        height: 30%;
-        display: flex;
-        align-items: flex-end;
-        justify-content: center;
+        border-radius: 12px 12px 0 0; padding: 24px 32px;
+        -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+        height: 25%;
       }
   
-      @media (min-width: 1024px) {
-        .fratelli-video-last-mobile-scrub__content.is-section-bottom {
-          height: 12%;
-        }
-      }
-  
-      /* hide the content while it's not centered (optional fade) */
-      .fratelli-video-last-mobile-scrub__content.not-fixed { /* retained for JS toggling compatibility */ }
-  
-      /* small devices tweaks */
       @media (max-width: 768px) {
         .fratelli-video-last-mobile-scrub__container h1 { font-size: 28px; margin-top: 3rem; }
-        .fratelli-video-last-mobile-scrub__container h2 { font-size: 20px; padding-right: 0; }
         .fratelli-video-last-mobile-scrub__container p { font-size: 16px; padding-right: 0; }
         .fratelli-video-last-mobile-scrub__content.is-section-bottom { padding: 16px 20px; border-radius: 8px 8px 0 0; }
       }
     </style>
   
-    <div class="scrolly-video-last-mobile-fixed-2-wrapper">
-      <div id="scrolly-video-last-mobile-fixed-2-container" aria-hidden="true"></div>
-    </div>
+    <!-- Underlay -->
+    <div id="scrolly-video4-last-mobile-{{ section.id }}" class="sv4-video-last-mobile"></div>
   
-    {%- comment -%}
-    Below: content block that initially sits in document flow. When scrubbing reaches 70%,
-    JS will add the `.is-bottom-fixed` class to fix it to the viewport bottom.
-    {%- endcomment -%}
-  
-    <div class="fratelli-video-last-mobile-scrub__content not-fixed" data-over-content>
-      <div class="fratelli-video-last-mobile-scrub__container" id="jason-{{ section.id }}">
-        <div class="fratelli-video-last-mobile-scrub__content-inner">
-            <h1 id="jason-h1-{{ section.id }}">Vineyard inspired artisanal cheese</h1>
-            <p id="jason-p-{{ section.id }}">
-              Handcrafted in small batches, our artisanal cheeses are designed to pair perfectly with Fratelli wines, bringing indulgence full circle.
-            </p>
-            <div style="margin-top: 1.25rem;">
-              <button type="button" class="fratelli-video-scrub__explore-btn" id="jason-btn-{{ section.id }}">SAVOR THE PRICING</button>
-            </div>
+    <!-- Overlay -->
+    <div class="fratelli-video-last-mobile-scrub__content" data-over-content id="sv4-overlay-last-mobile-{{ section.id }}">
+      <div class="fratelli-video-last-mobile-scrub__container">
+        <div class="fratelli-video-last-mobile-scrub__content-inner" id="sv4-inner-last-mobile-{{ section.id }}">
+          <h1 id="sv4-h1-last-mobile-{{ section.id }}">Vineyard inspired artisanal cheese</h1>
+          <p id="sv4-p1-last-mobile-{{ section.id }}">
+            Handcrafted in small batches, our artisanal cheeses are designed to pair perfectly with Fratelli wines, bringing indulgence full circle.
+          </p>
+          <div style="margin-top: 1.25rem;">
+            <button type="button" class="fratelli-video-last-mobile-scrub__explore-btn" id="sv4-btn-{{ section.id }}" tabindex="-1">SAVOR THE PRICING</button>
+          </div>
         </div>
       </div>
     </div>
   
-    <!-- scrolly-video-two library from CDN -->
-    <script defer src="https://cdn.jsdelivr.net/npm/scrolly-video-two@latest/dist/scrolly-video-two.js"></script>
-  
     <script>
       (function () {
-        // Hard-coded video url (replace with your own or swap to a Liquid asset_url)
-        var VIDEO_SRC = 'https://cdn.shopify.com/videos/c/o/v/4d9c7a78e1a14dd28f23b08c198b0a47.mp4';
-        var CONTAINER_ID = 'scrolly-video-last-mobile-fixed-2-container';
-        var SECTION_ID = 'scrolly-video-last-mobile-fixed-2-section';
-        var CONTENT_SELECTOR = '.fratelli-video-last-mobile-scrub__content';
+        var sectionId   = "{{ section.id }}";
+        var containerId = "scrolly-video4-last-mobile-" + sectionId;
+        var overlaySel  = "#sv4-overlay-last-mobile-" + sectionId;
+        var innerSel    = "#sv4-inner-last-mobile-" + sectionId;
+        var SHOW_THRESHOLD = 0.70, HIDE_THRESHOLD = 0.1;
+        var videoSrc = "https://cdn.shopify.com/videos/c/o/v/4d9c7a78e1a14dd28f23b08c198b0a47.mp4";
   
-        var SHOW_THRESHOLD = 0.7; // show when progress >= 70%
-        var HIDE_THRESHOLD = 0.68; // hide when progress < 68% (hysteresis to prevent flicker)
+        var overlayEl = document.querySelector(overlaySel);
+        var innerEl   = document.querySelector(innerSel);
+        var holder    = document.getElementById(containerId);
   
-        var sectionEl = document.getElementById(SECTION_ID);
-        var containerEl = document.getElementById(CONTAINER_ID);
-        var contentEl = sectionEl ? sectionEl.querySelector(CONTENT_SELECTOR) : null;
-  
-        // library instance (populated after init)
-        var scrollyInstance = null;
-  
-        // defensive timeout for script load
-        function whenLibraryReady(cb) {
-          var tries = 0;
-          (function waitLoop() {
-            if (typeof ScrollyVideo !== 'undefined') return cb();
-            tries += 1;
-            if (tries > 200) { // ~10s at 50ms intervals
-              console.error('scrolly-video-two script did not load');
-              return;
-            }
-            setTimeout(waitLoop, 50);
-          })();
-        }
-  
-        // init lib with minimal options (we won't rely on its trackScroll/sticky)
-        function initScrollyVideo() {
-          try {
-            scrollyInstance = new ScrollyVideo({
-              scrollyVideoContainer: CONTAINER_ID,
-              src: VIDEO_SRC,
-              sticky: false,      // disable library sticky so we handle scroll mapping ourselves
-              trackScroll: false, // disable library's internal scroll tracking
+        // --- 1) Try ScrollyVideo; else inject a sticky <video> fallback so the section is never blank ---
+        var scrollyInitOk = false;
+        try {
+          if (window.ScrollyVideo) {
+            new ScrollyVideo({
+              scrollyVideoContainer: containerId,
+              src: videoSrc,
               cover: true,
-              full: false,
-              transitionSpeed: 8,
-              frameThreshold: 0.05,
-              useWebCodecs: true,
-              debug: false,
-              onReady: function(inst) {
-                // hide loading
-                console.info('scrolly-video-two ready', inst);
-              },
-              onChange: function(pct) {
-                // optional - library-level change event
+              onChange: function (progress) {
+                if (overlayEl) {
+                  if (progress >= SHOW_THRESHOLD) {
+                    if (!overlayEl.classList.contains('is-section-bottom')) {
+                      overlayEl.classList.add('is-section-bottom');
+                      var btn = overlayEl.querySelector('button, a'); if (btn) btn.setAttribute('tabindex','0');
+                    }
+                  } else if (progress < HIDE_THRESHOLD) {
+                    if (overlayEl.classList.contains('is-section-bottom')) {
+                      overlayEl.classList.remove('is-section-bottom');
+                      var btn2 = overlayEl.querySelector('button, a'); if (btn2) btn2.setAttribute('tabindex','-1');
+                    }
+                  }
+                }
               }
             });
-  
-            // expose for debugging
-            window._scrollyVideoFixed2 = scrollyInstance;
-  
-            if (typeof scrollyInstance.setVideoPercentage !== 'function') {
-              console.warn('scrolly-video-two instance missing setVideoPercentage — attempting fallback to setVideoProgress / setPercentage');
-            }
-          } catch (err) {
-            console.error('scrolly-video-two init error', err);
+            scrollyInitOk = true;
           }
+        } catch (e) {
+          console.warn("[SV4] ScrollyVideo error:", e);
         }
   
-        // calculate scroll progress (0..1) for this section and call instance setter
-        var ticking = false;
-        function updateProgress() {
-          ticking = false;
-          if (!sectionEl || !scrollyInstance) return;
-  
-          var rect = sectionEl.getBoundingClientRect();
-          var vpH = window.innerHeight || document.documentElement.clientHeight;
-  
-          var sectionHeight = sectionEl.offsetHeight;
-          var maxScroll = Math.max(sectionHeight - vpH, 1); // avoid division by 0
-  
-          var docTop = window.pageYOffset || document.documentElement.scrollTop;
-          var sectionTop = docTop + rect.top;
-          var current = docTop - sectionTop;
-          current = Math.max(0, Math.min(current, maxScroll));
-          var progress = current / maxScroll;
-          progress = Math.max(0, Math.min(1, progress)); // safety clamp
-  
-          // set video playback via library API (prefer setVideoPercentage)
-          try {
-            if (typeof scrollyInstance.setVideoPercentage === 'function') {
-              scrollyInstance.setVideoPercentage(progress);
-            } else if (typeof scrollyInstance.setVideoProgress === 'function') {
-              scrollyInstance.setVideoProgress(progress);
-            } else if (typeof scrollyInstance.setPercentage === 'function') {
-              scrollyInstance.setPercentage(progress);
-            } else if (scrollyInstance.video && typeof scrollyInstance.video.currentTime !== 'undefined') {
-              var dur = scrollyInstance.video.duration || 1;
-              scrollyInstance.video.currentTime = progress * dur;
-            }
-          } catch (e) {
-            console.error('Error setting video percentage', e);
-          }
-  
-          // Manage content section-bottom settle when threshold is crossed
-          try {
-            if (contentEl) {
-              if (progress >= SHOW_THRESHOLD) {
-                if (!contentEl.classList.contains('is-section-bottom')) {
-                  contentEl.classList.add('is-section-bottom');
-                  contentEl.classList.remove('not-fixed');
-                  // optional: focus first actionable element when centered
-                  var btn = contentEl.querySelector('button, a');
-                  if (btn) btn.setAttribute('tabindex', '0');
-                }
-              } else if (progress < HIDE_THRESHOLD) {
-                if (contentEl.classList.contains('is-section-bottom')) {
-                  // remove section bottom settle and let content return to document flow
-                  contentEl.classList.remove('is-section-bottom');
-                  contentEl.classList.add('not-fixed');
-                  var btn = contentEl.querySelector('button, a');
-                  if (btn) btn.setAttribute('tabindex', '-1');
-                }
-              }
-            }
-          } catch (e) {
-            console.error('Error toggling content section-bottom settle', e);
-          }
-  
-          // debug: occasional logging
-          if (!updateProgress._ctr) updateProgress._ctr = 0;
-          updateProgress._ctr += 1;
-          if (updateProgress._ctr % 40 === 0) {
-            console.debug('scrolly progress', progress);
-          }
+        if (!scrollyInitOk && holder) {
+          var v = document.createElement('video');
+          v.src = videoSrc;
+          v.playsInline = true;
+          v.muted = true;
+          v.autoplay = true;
+          v.loop = true;
+          v.setAttribute('webkit-playsinline', 'true');
+          holder.appendChild(v);
+          v.addEventListener('error', function(){ console.warn('[SV4] Fallback video failed to load'); });
         }
   
-        // RAF-driven scroll handler to reduce layout thrashing
-        function onScroll() {
-          if (!ticking) {
-            window.requestAnimationFrame(updateProgress);
-            ticking = true;
-          }
-        }
+        // --- 2) GSAP ScrollTrigger: fade ONLY the inner content (no scrub) ---
+        if (window.gsap && window.ScrollTrigger && innerEl) {
+          gsap.registerPlugin(ScrollTrigger);
+          gsap.set(innerEl, { opacity: 0 });
   
-        // wire events
-        function wireScroll() {
-          window.addEventListener('scroll', onScroll, { passive: true });
-          window.addEventListener('resize', onScroll, { passive: true });
-          // initial call to set correct position
-          onScroll();
-        }
-  
-         // Set initial state
-         gsap.set('.fratelli-video-last-mobile-scrub__container', {
-          opacity: 0,
-        });
-  
-        // Initialize GSAP ScrollTrigger
-        function initAnimations() {
-          // Wait for GSAP to be available
-          if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
-            console.warn('GSAP or ScrollTrigger not loaded, retrying...');
-            setTimeout(initAnimations, 100);
-            return;
-          }
-  
-          // Create the fade-in animation
-          gsap.to('.fratelli-video-last-mobile-scrub__container', {
+          gsap.to(innerSel, {
             scrollTrigger: {
-              trigger: '.fratelli-video-last-mobile-scrub__content',
-              start: 'top 65%',
-              end: 'top 10%',
+              trigger: overlaySel,
+              start: 'top 70%',
+              end: 'top 25%',
               scrub: false,
               markers: false,
               onEnter: () => {
-                // Fade in the container
-                gsap.to('.fratelli-video-last-mobile-scrub__container', {
+                gsap.to(innerSel, {
                   opacity: 1,
                   duration: 1.2,
                   ease: 'power2.out'
                 });
               },
               onLeaveBack: () => {
-                // Fade out when scrolling back up
-                gsap.to('.fratelli-video-last-mobile-scrub__container', {
+                gsap.to(innerSel, {
                   opacity: 0,
                   duration: 0.6,
                   ease: 'power2.in'
@@ -364,25 +189,8 @@ Drop into sections/ and add to a page.
               }
             }
           });
-        }
-  
-        // bootstrap
-        whenLibraryReady(function() {
-          initScrollyVideo();
-          wireScroll();
-          // Initialize animations after a short delay to ensure GSAP is loaded
-          setTimeout(initAnimations, 500);
-          
-          // Also try initializing on window load in case GSAP loads after our script
-          window.addEventListener('load', initAnimations);
-        });
-  
-        // safety: if DOMContentLoaded hasn't fired, init when ready
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', function() {
-            // trigger an initial progress update after load
-            setTimeout(onScroll, 50);
-          });
+        } else {
+          console.warn('[SV4] GSAP/ScrollTrigger missing — inner fade skipped.');
         }
       })();
     </script>

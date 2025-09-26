@@ -62,7 +62,7 @@ sections/scrolly-video-vineyard-mobile-fixed.liquid
     }
     .fratelli-video-vineyard-mobile-scrub__container p {
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      padding-right: 7rem; color: #FFFFF8; font-size: 16px; letter-spacing: -0.04em;
+      color: #FFFFF8; font-size: 16px; letter-spacing: -0.04em;
     }
     .fratelli-video-vineyard-mobile-scrub__explore-btn {
       background: #fff; color: #000; border: none; padding: 0.625rem 1.25rem;
@@ -87,7 +87,7 @@ sections/scrolly-video-vineyard-mobile-fixed.liquid
   </style>
 
   <!-- Underlay -->
-  <div id="scrolly-video4-{{ section.id }}" class="sv4-video-vineyard-mobile"></div>
+  <div id="scrolly-video4-vineyard-mobile-{{ section.id }}" class="sv4-video-vineyard-mobile"></div>
 
   <!-- Overlay -->
   <div class="fratelli-video-vineyard-mobile-scrub__content" data-over-content id="sv4-overlay-vineyard-mobile-{{ section.id }}">
@@ -108,10 +108,10 @@ sections/scrolly-video-vineyard-mobile-fixed.liquid
   <script>
     (function () {
       var sectionId   = "{{ section.id }}";
-      var containerId = "scrolly-video4-" + sectionId;
+      var containerId = "scrolly-video4-vineyard-mobile-" + sectionId;
       var overlaySel  = "#sv4-overlay-vineyard-mobile-" + sectionId;
       var innerSel    = "#sv4-inner-vineyard-mobile-" + sectionId;
-      var SHOW_THRESHOLD = 0.70, HIDE_THRESHOLD = 0.68;
+      var SHOW_THRESHOLD = 0.70, HIDE_THRESHOLD = 0.1;
       var videoSrc = "https://cdn.shopify.com/videos/c/o/v/49f4e96f0c8a43fa90adad4efeaa9e52.mp4";
 
       var overlayEl = document.querySelector(overlaySel);
