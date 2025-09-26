@@ -93,18 +93,29 @@
   
       /* On "loaded", burst the SVG then hide overlay */
       #hero-video-autoplay-{{ section.id }}.is-loaded .loading-inner {
-        animation: hero-{{ section.id }}-burst 2s ease-out forwards;
+        animation: hero-{{ section.id }}-burst 3s ease-out forwards;
       }
       @keyframes hero-{{ section.id }}-burst {
         0%   { transform: scale(1); opacity: 1; }
+        5%   { transform: scale(5); opacity: 1; }
         10%   { transform: scale(10); opacity: 1; }
+        15%   { transform: scale(15); opacity: 1; }
         20%   { transform: scale(20); opacity: 1; }
-        30%   { transform: scale(30); opacity: 1; }
-        40%   { transform: scale(40); opacity: 1; }
-        50%   { transform: scale(50); opacity: 1; }
-        60%  { transform: scale(70); opacity: 1; }
-        70%  { transform: scale(80); opacity: 1; }
-        80%  { transform: scale(90); opacity: 1; }
+        25%   { transform: scale(25); opacity: 1; }
+        30%  { transform: scale(30); opacity: 1; }
+        35%  { transform: scale(35); opacity: 1; }
+        40%  { transform: scale(40); opacity: 1; }
+        45%  { transform: scale(45); opacity: 1; }
+        50%  { transform: scale(50); opacity: 1; }
+        55%  { transform: scale(55); opacity: 1; }
+        60%  { transform: scale(60); opacity: 1; }
+        65%  { transform: scale(65); opacity: 1; }
+        70%  { transform: scale(70); opacity: 1; }
+        75%  { transform: scale(75); opacity: 1; }
+        80%  { transform: scale(80); opacity: 1; }
+        85%  { transform: scale(85); opacity: 1; }
+        90%  { transform: scale(90); opacity: 1; }
+        95%  { transform: scale(95); opacity: 1; }
         100%  { transform: scale(100); opacity: 0; }
       }
       #hero-video-autoplay-{{ section.id }}.is-loaded .loading-overlay {
@@ -169,115 +180,127 @@
     </div>
   
     <script>
-      (function() {
-        const sectionEl = document.getElementById('hero-video-autoplay-{{ section.id }}');
-        if (!sectionEl) return;
-  
-        const video = sectionEl.querySelector('.hero-video');
-        const toggleBtn = sectionEl.querySelector('[data-role="toggle"]');
-        const iconPause = sectionEl.querySelector('[data-icon="pause"]');
-        const iconPlay  = sectionEl.querySelector('[data-icon="play"]');
-        const overlay   = sectionEl.querySelector('.loading-overlay');
-        const overlayInner = sectionEl.querySelector('.loading-inner');
-  
-        let userInteracted = false;
-  
-        function syncUIFromState(isPlaying) {
-          if (isPlaying) {
-            iconPause.style.display = '';
-            iconPlay.style.display = 'none';
-            toggleBtn.setAttribute('aria-label', 'Pause video');
-            toggleBtn.setAttribute('aria-pressed', 'false');
-          } else {
-            iconPause.style.display = 'none';
-            iconPlay.style.display = '';
-            toggleBtn.setAttribute('aria-label', 'Play video');
-            toggleBtn.setAttribute('aria-pressed', 'true');
+        (function() {
+          const sectionEl = document.getElementById('hero-video-autoplay-{{ section.id }}');
+          if (!sectionEl) return;
+      
+          const video = sectionEl.querySelector('.hero-video');
+          const toggleBtn = sectionEl.querySelector('[data-role="toggle"]');
+          const iconPause = sectionEl.querySelector('[data-icon="pause"]');
+          const iconPlay  = sectionEl.querySelector('[data-icon="play"]');
+          const overlay   = sectionEl.querySelector('.loading-overlay');
+          const overlayInner = sectionEl.querySelector('.loading-inner');
+      
+          let userInteracted = false;
+      
+          /* ---------- UI helpers ---------- */
+          function syncUIFromState(isPlaying) {
+            if (isPlaying) {
+              iconPause.style.display = '';
+              iconPlay.style.display = 'none';
+              toggleBtn.setAttribute('aria-label', 'Pause video');
+              toggleBtn.setAttribute('aria-pressed', 'false');
+            } else {
+              iconPause.style.display = 'none';
+              iconPlay.style.display = '';
+              toggleBtn.setAttribute('aria-label', 'Play video');
+              toggleBtn.setAttribute('aria-pressed', 'true');
+            }
           }
-        }
-  
-        function markLoadedAndHideOverlay() {
-          // Trigger burst + fade animations via CSS
-          sectionEl.classList.add('is-loaded');
-          // After animation completes, fully remove overlay from layout
-          const done = () => { overlay.style.display = 'none'; };
-          overlayInner.addEventListener('animationend', done, { once: true });
-          // Safety: also hide after 700ms in case of reduced motion
-          setTimeout(done, 700);
-        }
-  
-        function tryAutoplay() {
-          if (userInteracted) return;
-          const playPromise = video.play();
-          if (playPromise && typeof playPromise.then === 'function') {
-            playPromise.then(() => syncUIFromState(true)).catch(() => syncUIFromState(false));
-          } else {
-            syncUIFromState(!video.paused);
+      
+          function markLoadedAndHideOverlay() {
+            sectionEl.classList.add('is-loaded');
+            const done = () => { if (overlay) overlay.style.display = 'none'; };
+            if (overlayInner) overlayInner.addEventListener('animationend', done, { once: true });
+            setTimeout(done, 800); // safety for reduced motion / older browsers
           }
-        }
-  
-        // Manual toggle disables auto start/stop
-        toggleBtn.addEventListener('click', function() {
-          userInteracted = true;
-          if (video.paused) {
-            video.play().then(() => syncUIFromState(true)).catch(() => syncUIFromState(false));
-          } else {
-            video.pause();
-            syncUIFromState(false);
-          }
-        });
-  
-        // Auto play/pause by viewport (unless user interacted)
-        const observer = new IntersectionObserver((entries) => {
-          const entry = entries[0]; if (!entry) return;
-          if (userInteracted) return;
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.25) {
-            video.play().then(() => syncUIFromState(true)).catch(() => syncUIFromState(false));
-          } else {
-            video.pause(); syncUIFromState(false);
-          }
-        }, { threshold: [0, 0.25, 0.5, 0.75, 1] });
-        observer.observe(video);
-  
-        // Tab visibility
-        document.addEventListener('visibilitychange', function() {
-          if (userInteracted) return;
-          if (document.hidden) { video.pause(); syncUIFromState(false); }
-          else {
+      
+          function tryAutoplayIfVisible() {
+            if (userInteracted) return;
             const r = video.getBoundingClientRect();
             const inViewport = r.top < window.innerHeight && r.bottom > 0 && r.height > 0;
-            if (inViewport) tryAutoplay();
+            if (!inViewport) return;
+            const p = video.play();
+            if (p && typeof p.then === 'function') {
+              p.then(() => syncUIFromState(true)).catch(() => syncUIFromState(false));
+            } else {
+              syncUIFromState(!video.paused);
+            }
           }
-        });
-  
-        // Loading flow:
-        // Show overlay by default (is-loading class on <section> initially).
-        // When video can play sufficiently, burst the SVG and hide overlay.
-        const onReadyToPlay = () => {
-          // Kick autoplay once ready
-          tryAutoplay();
-          // Hide loader overlay with burst
-          if (sectionEl.classList.contains('is-loading')) {
-            sectionEl.classList.remove('is-loading'); // stop heartbeat loop
+      
+          /* ---------- Manual toggle (disables auto behavior) ---------- */
+          toggleBtn.addEventListener('click', function() {
+            userInteracted = true;
+            if (video.paused) {
+              video.play().then(() => syncUIFromState(true)).catch(() => syncUIFromState(false));
+            } else {
+              video.pause();
+              syncUIFromState(false);
+            }
+          });
+      
+          /* ---------- Viewport auto play/pause (unless user interacted) ---------- */
+          const observer = new IntersectionObserver((entries) => {
+            const entry = entries[0]; if (!entry) return;
+            if (userInteracted) return;
+            if (entry.isIntersecting && entry.intersectionRatio >= 0.25) {
+              video.play().then(() => syncUIFromState(true)).catch(() => syncUIFromState(false));
+            } else {
+              video.pause(); syncUIFromState(false);
+            }
+          }, { threshold: [0, 0.25, 0.5, 0.75, 1] });
+          observer.observe(video);
+      
+          document.addEventListener('visibilitychange', function() {
+            if (userInteracted) return;
+            if (document.hidden) {
+              video.pause(); syncUIFromState(false);
+            } else {
+              tryAutoplayIfVisible();
+            }
+          });
+      
+          /* ---------- NEW: wait for ALL videos on the page ---------- */
+          const ALL_VIDEOS_TIMEOUT_MS = 15000; // fallback so the page never gets stuck
+      
+          function waitUntilVideoReady(v) {
+            return new Promise((resolve) => {
+              // If already has enough data to play forward
+              if (v.readyState >= 3 /* HAVE_FUTURE_DATA */) return resolve();
+              const onReady = () => { cleanup(); resolve(); };
+              const onErr   = () => { cleanup(); resolve(); }; // resolve on error to avoid blocking
+              const cleanup = () => {
+                v.removeEventListener('canplaythrough', onReady);
+                v.removeEventListener('loadeddata', onReady);
+                v.removeEventListener('error', onErr);
+              };
+              v.addEventListener('canplaythrough', onReady, { once: true });
+              v.addEventListener('loadeddata', onReady, { once: true });
+              v.addEventListener('error', onErr, { once: true });
+            });
+          }
+      
+          const allVideos = Array.from(document.querySelectorAll('video'));
+          const allReadyPromise = Promise.race([
+            Promise.all(allVideos.map(waitUntilVideoReady)),
+            new Promise((res) => setTimeout(res, ALL_VIDEOS_TIMEOUT_MS))
+          ]);
+      
+          // Keep UI state in sync
+          video.addEventListener('play',  () => syncUIFromState(true));
+          video.addEventListener('pause', () => syncUIFromState(false));
+          video.addEventListener('error', () => { sectionEl.classList.add('is-loaded'); if (overlay) overlay.style.display = 'none'; });
+      
+          // When ALL page videos are ready (or timeout), burst & hide overlay, then autoplay if visible
+          allReadyPromise.then(() => {
+            // Stop heartbeat loop and run burst/fade
+            sectionEl.classList.remove('is-loading');
             markLoadedAndHideOverlay();
-          }
-        };
-  
-        if (video.readyState >= 3) { // HAVE_FUTURE_DATA
-          onReadyToPlay();
-        } else {
-          // Use canplaythrough if available, otherwise loadeddata as fallback
-          video.addEventListener('canplaythrough', onReadyToPlay, { once: true });
-          video.addEventListener('loadeddata', onReadyToPlay, { once: true });
-        }
-  
-        // Keep UI synced
-        video.addEventListener('play',  () => syncUIFromState(true));
-        video.addEventListener('pause', () => syncUIFromState(false));
-        // In case of error, hide overlay so page isn't stuck
-        video.addEventListener('error', () => { sectionEl.classList.add('is-loaded'); overlay.style.display = 'none'; });
-      })();
-    </script>
+            tryAutoplayIfVisible();
+          });
+        })();
+      </script>
+      
   </section>
   
   {% schema %}
