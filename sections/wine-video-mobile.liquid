@@ -57,19 +57,6 @@ Drop into sections/ and add to a page.
       will-change: transform;
     }
 
-    /* Loading label */
-    .scrolly-video-two-fixed-2-loading {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      color: #fff;
-      font-size: 14px;
-      z-index: 50;
-      pointer-events: none;
-      opacity: 0.95;
-    }
-
 
     /* --- Content, hidden by default, anchored to section bottom --- */
     /* Will become visible and styled at >=70% progress */
@@ -154,10 +141,6 @@ Drop into sections/ and add to a page.
 
   <div class="scrolly-video-two-fixed-2-wrapper">
     <div id="scrolly-video-two-fixed-2-container" aria-hidden="true"></div>
-
-    <div class="scrolly-video-two-fixed-2-loading" id="scrolly-video-two-fixed-2-loading">
-      Loading video...
-    </div>
   </div>
 
   {%- comment -%}
@@ -187,14 +170,12 @@ Drop into sections/ and add to a page.
       // Hard-coded video url (replace with your own or swap to a Liquid asset_url)
       var VIDEO_SRC = 'https://cdn.shopify.com/videos/c/o/v/adbca65253f3466ab81593e2f430e326.mp4';
       var CONTAINER_ID = 'scrolly-video-two-fixed-2-container';
-      var LOADING_ID = 'scrolly-video-two-fixed-2-loading';
       var SECTION_ID = 'scrolly-video-two-fixed-2-section';
       var CONTENT_SELECTOR = '.fratelli-video-two-scrub__content';
 
       var SHOW_THRESHOLD = 0.7; // show when progress >= 70%
       var HIDE_THRESHOLD = 0.68; // hide when progress < 68% (hysteresis to prevent flicker)
 
-      var loadingEl = document.getElementById(LOADING_ID);
       var sectionEl = document.getElementById(SECTION_ID);
       var containerEl = document.getElementById(CONTAINER_ID);
       var contentEl = sectionEl ? sectionEl.querySelector(CONTENT_SELECTOR) : null;
@@ -210,7 +191,6 @@ Drop into sections/ and add to a page.
           tries += 1;
           if (tries > 200) { // ~10s at 50ms intervals
             console.error('scrolly-video-two script did not load');
-            if (loadingEl) loadingEl.textContent = 'Video library failed to load';
             return;
           }
           setTimeout(waitLoop, 50);
@@ -233,7 +213,6 @@ Drop into sections/ and add to a page.
             debug: false,
             onReady: function(inst) {
               // hide loading
-              if (loadingEl) loadingEl.style.display = 'none';
               console.info('scrolly-video-two ready', inst);
             },
             onChange: function(pct) {
@@ -249,7 +228,6 @@ Drop into sections/ and add to a page.
           }
         } catch (err) {
           console.error('scrolly-video-two init error', err);
-          if (loadingEl) loadingEl.textContent = 'Video failed to initialize';
         }
       }
 
