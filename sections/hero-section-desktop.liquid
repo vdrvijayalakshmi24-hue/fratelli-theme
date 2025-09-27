@@ -137,6 +137,40 @@
           opacity: 0; visibility: hidden;
         }
       }
+            /* Bottom-right mute/unmute button */
+            #hero-video-autoplay-{{ section.id }} .mute-toggle {
+              position: absolute;
+              right: 16px;
+              bottom: 16px;
+              z-index: 4;
+              pointer-events: none; /* enable via inner button */
+            }
+            #hero-video-autoplay-{{ section.id }} .mute-toggle__btn {
+              pointer-events: auto;
+              border: none;
+              outline: none;
+              padding: 0.6rem 0.75rem;
+              border-radius: 999px;
+              background: rgba(0,0,0,0.55);
+              color: #fff;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              backdrop-filter: blur(2px);
+              transition: transform 160ms ease, background 160ms ease;
+              font-size: 1rem;
+              line-height: 1;
+            }
+            #hero-video-autoplay-{{ section.id }} .mute-toggle__btn:hover {
+              transform: scale(1.05);
+              background: rgba(0,0,0,0.7);
+            }
+            #hero-video-autoplay-{{ section.id }} .mute-toggle__icon {
+              display: inline-block;
+              font-size: 1.125rem;
+              line-height: 1;
+            }
     </style>
   
     <div class="hero-video-wrapper">
@@ -151,6 +185,14 @@
         <button type="button" class="video-toggle__btn" aria-label="Pause video" aria-pressed="false" data-role="toggle">
           <span class="video-toggle__icon" data-icon="pause" aria-hidden="true">❚❚</span>
           <span class="video-toggle__icon" data-icon="play"  aria-hidden="true" style="display:none;">▶</span>
+        </button>
+      </div>
+
+      <!-- Bottom-right mute/unmute control -->
+      <div class="mute-toggle">
+        <button type="button" class="mute-toggle__btn" aria-label="Unmute video" data-role="mute">
+          <span class="mute-toggle__icon" data-icon="muted" aria-hidden="true">🔇</span>
+          <span class="mute-toggle__icon" data-icon="unmuted" aria-hidden="true" style="display:none;">🔊</span>
         </button>
       </div>
   
@@ -190,6 +232,10 @@
           const iconPlay  = sectionEl.querySelector('[data-icon="play"]');
           const overlay   = sectionEl.querySelector('.loading-overlay');
           const overlayInner = sectionEl.querySelector('.loading-inner');
+
+          const muteBtn  = sectionEl.querySelector('[data-role="mute"]');
+          const iconMuted = sectionEl.querySelector('.mute-toggle [data-icon="muted"]');
+          const iconUnmuted = sectionEl.querySelector('.mute-toggle [data-icon="unmuted"]');
       
           let userInteracted = false;
       
@@ -285,7 +331,28 @@
             Promise.all(allVideos.map(waitUntilVideoReady)),
             new Promise((res) => setTimeout(res, ALL_VIDEOS_TIMEOUT_MS))
           ]);
-      
+          /* ---------- Mute UI helpers ---------- */
+          function syncMuteUI() {
+            if (!muteBtn) return;
+            const isMuted = video.muted;
+            if (iconMuted && iconUnmuted) {
+              iconMuted.style.display = isMuted ? '' : 'none';
+              iconUnmuted.style.display = isMuted ? 'none' : '';
+            }
+            muteBtn.setAttribute('aria-label', isMuted ? 'Unmute video' : 'Mute video');
+          }
+          /* ---------- Mute toggle (does not affect play/pause state) ---------- */
+          if (muteBtn) {
+            // Ensure initial UI matches initial muted state
+            syncMuteUI();
+            muteBtn.addEventListener('click', function() {
+              // User interaction allows unmuting while autoplaying on mobile
+              userInteracted = true;
+              video.muted = !video.muted;
+              syncMuteUI();
+            });
+          }
+          video.addEventListener('volumechange', () => syncMuteUI());
           // Keep UI state in sync
           video.addEventListener('play',  () => syncUIFromState(true));
           video.addEventListener('pause', () => syncUIFromState(false));
