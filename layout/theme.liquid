@@ -111,7 +111,7 @@
   }
 
   // Initialize Lenis
-  var lenis = new Lenis(config);
+  var lenis = new Lenis();
   window.__lenis = lenis; // expose for debugging / toggles from console
 
   // === RAF LOOP (required) ===
@@ -327,7 +327,12 @@
         <main id="main" role="main">
           {{ content_for_layout }}
         </main>
-        {% section 'footer' %}
+        {% if template.name != 'index' %}
+          {% section 'footer' %}
+        {% endif %}
+        {% if template.name == 'index' %}
+          {% section 'new-footer-mobile' %}
+        {% endif %}
       </div>
     </div>
     
