@@ -11,7 +11,7 @@
     background: unset;
 }
 .template-index .shopify-section--header {
-    position: sticky;
+    position: fixed;
 }
 
 .template-index .Header .HorizontalList__Item > a,
