@@ -1,38 +1,45 @@
 {% comment %} {{ content_for_index }} {% endcomment %}
-{% section 'hero-section-desktop' %}
-{% section 'first-video' %}
+{% comment %} {% section 'fullscreen_video' %} {% endcomment %}
+{% section 'mask_logo' %}
+<div class="mobile-only">
+  {% section 'section-three' %}
+  {% section 'section-four' %}
+  {% section 'section-five' %}
+  {% section 'section-six' %}
+</div>
+{% comment %} {% section 'first-video' %} {% endcomment %}
 <div class="desktop-only">
   {% section 'wine-video-desktop' %}
 </div>
 
-<div class="mobile-only">
+{% comment %} <div class="mobile-only">
   {% section 'wine-video-mobile' %}
-</div>
+</div> {% endcomment %}
 
 {% comment %} Show different sections for mobile and desktop {% endcomment %}
 <div class="desktop-only">
     {% section 'vineyard-video' %}
 </div>
 
-<div class="mobile-only">
+{% comment %} <div class="mobile-only">
     {% section 'vineyard-video-mobile' %}
-</div>
+</div> {% endcomment %}
 
 <div class="desktop-only">
   {% section 'fratelli-building' %}
 </div>
 
-<div class="mobile-only">
+{% comment %} <div class="mobile-only">
   {% section 'fratelli-building-mobile' %}
-</div>
+</div> {% endcomment %}
 
 <div class="desktop-only">
   {% section 'last-video-desktop' %}
 </div>
 
-<div class="mobile-only">
+{% comment %} <div class="mobile-only">
   {% section 'last-video-mobile' %}
-</div>
+</div> {% endcomment %}
 {% section 'insta-section' %}
 
 <style>

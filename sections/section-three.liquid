@@ -1,0 +1,140 @@
+{% comment %}
+  sections/section-three.liquid
+  - Intentionally minimal: no CSS, no child elements.
+  - Only a section wrapper and schema so it can be added in the Theme Editor.
+{% endcomment %}
+
+<section id="section-three-{{ section.id }}" class="section-three">
+    <style>
+    .section-three {
+        position: relative;
+    }
+    .section-three_content {
+        position: absolute;
+        width: 100%;
+        height: 50vh;
+        transform: rotate(180deg);
+        background: linear-gradient(0deg, #030202 74.46%, rgba(0, 0, 0, 0) 100%);
+        z-index: 2;
+      }
+      .section-three_content-bottom-inner {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        height: 100%;
+        padding: 20px;
+      }
+      .section-three_content-bottom {
+        width: 100%;
+        height: 50vh;
+        background: linear-gradient(0deg, #030202 74.46%, rgba(0, 0, 0, 0) 100%);
+        position: relative;
+        z-index: 2;
+        margin-top: -120px;
+      }
+  
+      /* Underlay container (we’ll sticky its child video/canvas) */
+      .section-three-video-wine-mobile {
+        position: relative;
+        z-index: 0 !important;     /* ensure presence even before JS runs */
+      }
+
+      .section-three-video-wine-mobile video,
+        .section-three-video-wine-mobile canvas {
+            z-index: 0;
+            position: relative; /* or sticky/top:0 if you want it to stick */
+            top: 80% !important;
+        }
+        .section-three-wine-mobile-h1 {
+            font-family: "Utile", sans-serif; color: #ffffff;
+            font-size: 36px; font-weight: 600;
+          }
+          .section-three-wine-mobile-p {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            color: #FFFFF8; font-size: 16px; letter-spacing: -0.04em;
+          }
+          .section-three-wine-mobile-wine-btn {
+            background: #fff; color: #000; border: none; padding: 0.625rem 1.25rem;
+            border-radius: 20px; font-weight: 600; cursor: pointer;
+          }
+    </style>
+    <div class="section-three_content"></div>
+    <div id="scrolly-video4-wine-mobile-{{ section.id }}" class="section-three-video-wine-mobile"></div>
+    <div class="section-three_content-bottom">
+        <div class="section-three_content-bottom-inner" id="section-three-inner-wine-mobile-{{ section.id }}">
+            <h1 class="section-three-wine-mobile-h1" id="section-three-h1-wine-mobile-{{ section.id }}">Pour more into every moment</h1>
+            <p class="section-three-wine-mobile-p" id="section-three-p1-wine-mobile-{{ section.id }}">
+              Be it a quiet evening or a grand celebration, our wines bring richness and artistry to every occasion because there’s something for everyone
+            </p>
+            <div style="margin-top: 1.25rem;">
+              <button type="button" class="section-three-wine-mobile-wine-btn" tabindex="-1">EXPLORE OUR RANGE</button>
+            </div>
+          </div>
+    </div>
+    <script>
+        var sectionId   = "{{ section.id }}";
+        var containerId = "scrolly-video4-wine-mobile-" + sectionId;
+        var videoSrc = "https://cdn.shopify.com/videos/c/o/v/adbca65253f3466ab81593e2f430e326.mp4";
+        try {
+          if (window.ScrollyVideo) {
+            new ScrollyVideo({
+              scrollyVideoContainer: containerId,
+              src: videoSrc,
+              cover: true,
+              sticky: false,
+            });
+          }
+        } catch (e) {
+          console.warn("[SV4] ScrollyVideo error:", e);
+        }
+        var innerSel = "#section-three-inner-wine-mobile-" + sectionId;
+        var overlaySel = ".section-three_content-bottom";
+        var overlayEl = document.querySelector(overlaySel);
+        var innerEl = document.querySelector(innerSel);
+        if (window.gsap && window.ScrollTrigger && innerEl) {
+            gsap.registerPlugin(ScrollTrigger);
+            gsap.set(innerEl, { opacity: 0 });
+    
+            gsap.to(innerSel, {
+              scrollTrigger: {
+                trigger: overlayEl,
+                start: 'top 50%',
+                end: 'top 25%',
+                scrub: false,
+                markers: false,
+                onEnter: () => {
+                  gsap.to(innerSel, {
+                    opacity: 1,
+                    duration: 1.2,
+                    ease: 'power2.out'
+                  });
+                },
+                onLeaveBack: () => {
+                  gsap.to(innerSel, {
+                    opacity: 0,
+                    duration: 0.6,
+                    ease: 'power2.in'
+                  });
+                }
+              }
+            });
+          } else {
+            console.warn('[SV4] GSAP/ScrollTrigger missing — inner fade skipped.');
+          }
+    </script>
+</section>
+
+{% schema %}
+{
+  "name": "Section Three",
+  "settings": [],
+  "blocks": [],
+  "presets": [
+    {
+      "name": "Section Three",
+      "category": "Custom"
+    }
+  ]
+}
+{% endschema %}

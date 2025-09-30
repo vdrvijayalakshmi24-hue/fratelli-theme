@@ -1,0 +1,583 @@
+{% comment %}
+  sections/hero-mask-image-as-mask.liquid
+  - Mask is fixed & centered immediately on paint.
+  - Animates mask-size -> fade using GSAP + ScrollTrigger.
+  - No children inside mask-wrapper.
+{% endcomment %}
+<section id="hero-mask-image-as-mask" aria-label="Hero mask image as mask" style="position:relative; width:100%;">
+<div class="hero-mask-image-as-mask-container" style="position:relative; width:100%;">
+    <style>
+        
+      #hero-mask-image-as-mask-container { display:block; height: 100vh; }
+  
+      /* The mask wrapper is fixed so the mask stays centered in the viewport */
+      #hero-mask-image-as-mask .mask-wrapper {
+        position: fixed;
+        inset: 0; /* top:0; right:0; bottom:0; left:0; */
+        width: 100%;
+        height: 100%;
+        display: block;
+        z-index: 2;
+        pointer-events: none;
+  
+        /* Visible background (change to your background image if desired) */
+        background: white;
+  
+        /* Use the SVG as the mask-image (requested behaviour) */
+        mask-image: url('{{ "mask_logo.svg" | asset_url }}');
+        -webkit-mask-image: url('{{ "mask_logo.svg" | asset_url }}');
+  
+        mask-repeat: no-repeat;
+        -webkit-mask-repeat: no-repeat;
+  
+        /* Force centered fallback so it's centered before JS runs */
+        mask-position: 50% 50% !important;
+        -webkit-mask-position: 50% 50% !important;
+        mask-size: 3700% 3700%;
+        -webkit-mask-size: 3700% 3700%;
+  
+        /* ensure mask uses alpha of SVG */
+        mask-mode: alpha;
+        -webkit-mask-composite: source-over;
+        mask-composite: add;
+  
+        will-change: mask-size, opacity;
+        opacity: 1;
+      }
+  
+      /* Responsive fallback sizes only (position remains centered) */
+      @media (max-width:767px) {
+        #hero-mask-image-as-mask .mask-wrapper {
+          mask-size: 4000% 4000%;
+          -webkit-mask-size: 4000% 4000%;
+        }
+      }
+      @media (min-width:768px) and (max-width:1024px) {
+        #hero-mask-image-as-mask .mask-wrapper {
+          mask-size: 3500% 3500%;
+          -webkit-mask-size: 3500% 3500%;
+        }
+      }
+  
+      /* Make sure background image is centered and fixed behind the mask */
+      #hero-mask-image-as-mask .bg-fixed {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center center; /* <-- ensure centering */
+        z-index: -1;
+      }
+    </style>
+
+    <style>
+        /* Full viewport container */
+        #hero-fullscreen-video {
+          position: relative;
+          width: 100%;
+          height: 100vh;
+          {% comment %} overflow: hidden; {% endcomment %}
+          background: #000;
+        }
+    
+        /* Video element fits and covers viewport */
+        #hero-fullscreen-video .hfv__video {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          will-change: transform, opacity;
+          display: block;
+          z-index: 2; /* ensure video sits above poster */
+        }
+    
+        /* Poster background for instant paint */
+        #hero-fullscreen-video .hfv__poster {
+          position: absolute;
+          inset: 0;
+          background-size: cover;
+          background-position: center;
+          background-repeat: no-repeat;
+          z-index: 1;
+          transition: opacity 320ms ease, visibility 320ms;
+        }
+    
+        #hero-fullscreen-video.is-playing .hfv__poster {
+          opacity: 0;
+          visibility: hidden;
+          pointer-events: none;
+        }
+    
+        /* Overlay for controls (centered) */
+        #hero-fullscreen-video .hfv__overlay {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 4;
+          pointer-events: auto;
+          background: linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.10));
+          transition: opacity 260ms ease;
+        }
+
+        #hero-fullscreen-video:not(.is-playing) .hfv__video {
+          scale: 2.5;
+        }
+    
+        /* When video playing, hide overlay visually (but keep accessible) */
+        #hero-fullscreen-video.is-playing .hfv__overlay {
+          opacity: 0;
+          pointer-events: none;
+        }
+    
+        /* Play/Pause button */
+        .hfv__btn {
+          width: 96px;
+          height: 96px;
+          display: inline-grid;
+          place-items: center;
+          border-radius: 999px;
+          background: rgba(0,0,0,0.42);
+          cursor: pointer;
+          border: 1px solid rgba(255,255,255,0.06);
+          box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+          transition: transform 180ms cubic-bezier(.2,.9,.3,1), opacity 180ms;
+        }
+        .hfv__btn:focus { outline: 3px solid rgba(255,255,255,0.12); transform: scale(1.03); }
+    
+        /* Small hint below button */
+        .hfv__hint {
+          margin-top: 12px;
+          color: rgba(255,255,255,0.92);
+          font-size: 13px;
+          text-align: center;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+          letter-spacing: 0.02em;
+          z-index: 5;
+        }
+    
+        @media (max-width:720px) {
+          .hfv__btn { width: 72px; height: 72px; }
+          .hfv__hint { font-size: 12px; }
+        }
+        .section-two-mobile {
+            position: relative;
+        }
+
+        .section-two-mobile-content {
+            position: absolute;
+            bottom: 30%;
+            text-align: center;
+            width: 100%;
+            padding: 20px;
+        }
+
+        .section-two-mobile-content h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .section-two-mobile-content p {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            color: #fff;
+        }
+
+        .section-two-mobile-content .typed-text { white-space: pre-wrap;text-align:center; }
+        .section-two-mobile-content .typing-cursor {
+        display:none;
+        margin-left:6px;
+        width:10px;
+        animation: blink 1s steps(2,start) infinite;
+        vertical-align:middle;
+        }
+        @keyframes blink { 50% { opacity: 0 } }
+      </style>
+
+      <div id="hero-fullscreen-video" class="hero-fullscreen-video">
+          <!-- Poster (Unsplash) - visible immediately while video loads -->
+          <div class="hfv__poster" aria-hidden="true"
+               style="background-image:url('https://images.unsplash.com/photo-1506765515384-028b60a970df?auto=format&fit=crop&w=2000&q=80');"></div>
+        
+          <!-- Video element - hard-coded asset_url -->
+          <video
+            id="hfv_video"
+            class="hfv__video"
+            preload="auto"
+            playsinline
+            webkit-playsinline
+            poster="https://images.unsplash.com/photo-1506765515384-028b60a970df?auto=format&fit=crop&w=2000&q=80"
+            aria-label="Hero background video"
+          >
+            <source src="{{ 'Brand_Video.mp4' | asset_url }}" type="video/mp4">
+            Your browser does not support HTML5 video.
+          </video>
+        
+        
+        
+          <!-- Overlay and controls -->
+          <div class="hfv__overlay" id="hfv_overlay" role="group" aria-label="Video controls">
+            <div style="text-align:center;">
+              <button id="hfv_toggle" class="hfv__btn" aria-label="Play video" aria-pressed="false" type="button">
+                <!-- Play SVG (your provided SVG) -->
+                <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                  <mask id="hfv_mask" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="72" height="72">
+                    <rect width="72" height="72" fill="#D9D9D9"/>
+                  </mask>
+                  <g mask="url(#hfv_mask)">
+                    <path d="M28.5 49.5L49.5 36L28.5 22.5V49.5ZM36 66C31.85 66 27.95 65.2125 24.3 63.6375C20.65 62.0625 17.475 59.925 14.775 57.225C12.075 54.525 9.9375 51.35 8.3625 47.7C6.7875 44.05 6 40.15 6 36C6 31.85 6.7875 27.95 8.3625 24.3C9.9375 20.65 12.075 17.475 14.775 14.775C17.475 12.075 20.65 9.9375 24.3 8.3625C27.95 6.7875 31.85 6 36 6C40.15 6 44.05 6.7875 47.7 8.3625C51.35 9.9375 54.525 12.075 57.225 14.775C59.925 17.475 62.0625 20.65 63.6375 24.3C65.2125 27.95 66 31.85 66 36C66 40.15 65.2125 44.05 63.6375 47.7C62.0625 51.35 59.925 54.525 57.225 57.225C54.525 59.925 51.35 62.0625 47.7 63.6375C44.05 65.2125 40.15 66 36 66ZM36 60C42.7 60 48.375 57.675 53.025 53.025C57.675 48.375 60 42.7 60 36C60 29.3 57.675 23.625 53.025 18.975C48.375 14.325 42.7 12 36 12C29.3 12 23.625 14.325 18.975 18.975C14.325 23.625 12 29.3 12 36C12 42.7 14.325 48.375 18.975 53.025C23.625 57.675 29.3 60 36 60Z" fill="white"/>
+                  </g>
+                </svg>
+              </button>
+        
+              <div class="hfv__hint" id="hfv_hint">Tap to play with sound</div>
+            </div>
+          </div>
+        </div>
+        <div class="section-two-mobile">
+            <img src="{{ 'section_2_mobile.png' | asset_url }}" alt="Mask Logo" width="100%" height="200vh">
+            <div class="section-two-mobile-content">
+                <h2>India's finestWine Makers</h2>
+                <p>From the heart of Akluj to tables across the world, Fratelli is more than wine, it's a story of heritage, craftsmanship and seven brothers bound by a dream. Every bottle is a testamentto passion and the spirit ofPour More Into Life.</p>
+            </div>
+        </div>
+    <!-- Background image (fixed so mask reveals it). object-position center ensures no bottom alignment surprises -->  
+    <!-- fixed mask wrapper (no children required) -->
+    <div class="mask-wrapper" aria-hidden="false"></div>
+
+
+  
+    <script>
+      (function () {
+        const SECTION_ID = 'hero-mask-image-as-mask';
+        const section = document.getElementById(SECTION_ID);
+        if (!section) return;
+        const wrapper = section.querySelector('.mask-wrapper');
+        if (!wrapper) return;
+  
+        function getMaskSettings() {
+          const w = window.innerWidth;
+          // All positions are centered (50% 50%). We only change sizes per breakpoint.
+          if (w <= 767) {
+            return {
+              initialMaskSize: "2500% 2500%", // very large to fully reveal background initially
+              targetMaskSize: "40% 40%",      // mobile target size (tight centered mask)
+              endOffset: '+=100%'             // how long the scrub/pin should last
+            };
+          }
+          if (w >= 768 && w <= 1024) {
+            return {
+              initialMaskSize: "3500% 3500%",
+              targetMaskSize: "30% 30%",
+              endOffset: '+=100%'
+            };
+          }
+          // desktop
+          return {
+            initialMaskSize: "3700% 3700%",
+            targetMaskSize: "20% 20%",
+            endOffset: '+=100%'
+          };
+        }
+  
+        // IMMEDIATE: apply centered mask-position and initial size to avoid any visual jump.
+        (function applyImmediateFallback() {
+          const ms = getMaskSettings();
+          // Ensure centered on first paint
+          wrapper.style.maskPosition = '50% 50%';
+          wrapper.style.webkitMaskPosition = '50% 50%';
+          wrapper.style.maskSize = ms.initialMaskSize;
+          wrapper.style.webkitMaskSize = ms.initialMaskSize;
+          wrapper.style.opacity = '1';
+        })();
+  
+        // If GSAP/ScrollTrigger not available, we've already applied centered initial state
+        if (!(window.gsap && window.ScrollTrigger)) {
+          return;
+        }
+  
+        const gsap = window.gsap;
+        gsap.registerPlugin(window.ScrollTrigger);
+  
+        let tl = null;
+  
+        function applyMaskState(state) {
+          wrapper.style.maskPosition = '50% 50%';
+          wrapper.style.webkitMaskPosition = '50% 50%';
+          wrapper.style.maskSize = state.size;
+          wrapper.style.webkitMaskSize = state.size;
+          if (typeof state.opacity === 'number') wrapper.style.opacity = String(state.opacity);
+        }
+  
+        function buildTimeline() {
+          if (tl) {
+            try {
+              if (tl.scrollTrigger) tl.scrollTrigger.kill();
+              tl.kill();
+            } catch (e) {}
+          }
+  
+          const ms = getMaskSettings();
+  
+          const state = {
+            size: ms.initialMaskSize,
+            opacity: 1
+          };
+  
+          // Ensure the mask is centered & initial size applied before animation
+          applyMaskState(state);
+  
+          // numeric proxy for interpolation (GSAP handles numeric tweening)
+          const startNums = (ms.initialMaskSize || '3700% 3700%').split(/\s+/).map(s => parseFloat(s));
+          const endNums = (ms.targetMaskSize || '20% 20%').split(/\s+/).map(s => parseFloat(s));
+          const proxy = { x: startNums[0], y: startNums[1] };
+  
+          tl = gsap.timeline({
+            scrollTrigger: {
+              trigger: `#${SECTION_ID}`,
+              start: 'top top',   // pin as soon as section top hits viewport top
+              scrub: true,
+              end: ms.endOffset,
+              pin: false
+            }
+          });
+  
+          // animate numeric proxy -> update mask-size string on each frame (keeps center)
+          tl.to(proxy, {
+            x: endNums[0],
+            y: endNums[1],
+            ease: 'power1.inOut',
+            onUpdate: () => {
+              const sizeStr = `${proxy.x}% ${proxy.y}%`;
+              state.size = sizeStr;
+              applyMaskState(state);
+            }
+          });
+  
+          // fade out once scaled down
+          tl.to(state, {
+            ease: 'power1.inOut',
+            opacity: 0,
+            onUpdate: () => {
+                applyMaskState(state);
+            }
+          });
+        }
+  
+        // build first timeline
+        buildTimeline();
+  
+        // debounce resize -> rebuild
+        let resizeTimer = null;
+        function handleResize() {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => {
+            buildTimeline();
+          }, 120);
+        }
+        window.addEventListener('resize', handleResize);
+  
+        function destroy() {
+          try {
+            if (tl && tl.scrollTrigger) tl.scrollTrigger.kill();
+            if (tl) tl.kill();
+          } catch (e) {}
+          window.removeEventListener('resize', handleResize);
+        }
+        window.addEventListener('beforeunload', destroy);
+        window.addEventListener('pagehide', destroy);
+      })();
+    </script>
+    <script>
+        (function () {
+          const root = document.getElementById('hero-fullscreen-video');
+          const video = document.getElementById('hfv_video');
+          const toggleBtn = document.getElementById('hfv_toggle');
+          const overlay = document.getElementById('hfv_overlay');
+          const hint = document.getElementById('hfv_hint');
+
+          gsap.to(video, {
+            scale: 1,               // final scale
+            ease: 'none',          // linear for natural scroll-synced feel
+            scrollTrigger: {
+              trigger: video,
+              start: 'top center',   // when section top hits viewport center
+              end: 'bottom center',  // when section bottom hits viewport center
+              scrub: true,           // smoothly sync with scroll
+              // markers: true,      // enable for debugging
+            }
+          });
+    
+          // Ensure initial state: poster visible; video muted initially to allow preload
+          video.muted = true;
+          video.preload = 'auto';
+          // Do not autoplay with audio — click must unmute
+          let isPlaying = false;
+    
+          function updateUIPlaying(playing) {
+            isPlaying = playing;
+            const poster = root.querySelector('.hfv__poster');
+            if (playing) {
+              root.classList.add('is-playing');
+              toggleBtn.setAttribute('aria-label', 'Pause video');
+              toggleBtn.setAttribute('aria-pressed', 'true');
+              if (hint) hint.style.opacity = 0;
+              if (poster) {
+                poster.style.opacity = 0;
+                poster.style.visibility = 'hidden';
+                poster.style.pointerEvents = 'none';
+              }
+            } else {
+              root.classList.remove('is-playing');
+              toggleBtn.setAttribute('aria-label', 'Play video');
+              toggleBtn.setAttribute('aria-pressed', 'false');
+              if (hint) hint.style.opacity = 1;
+              if (poster) {
+                poster.style.opacity = '';
+                poster.style.visibility = '';
+                poster.style.pointerEvents = '';
+              }
+            }
+          }
+    
+          // Play (unmute first to allow audio)
+          function playVideo() {
+            try {
+              // Unmute as a direct result of user gesture
+              video.muted = false;
+              // small default volume if user hasn't set
+              if (typeof video.volume === 'number' && video.volume === 1) video.volume = 0.95;
+            } catch (e) {
+              // ignore
+            }
+    
+            const p = video.play();
+            if (p && typeof p.then === 'function') {
+              p.then(() => {
+                updateUIPlaying(true);
+              }).catch((err) => {
+                // play prevented: keep muted as fallback, try to play muted
+                console.warn('Play rejected:', err);
+                try {
+                  video.muted = true;
+                  video.play().then(() => updateUIPlaying(true)).catch(()=>{});
+                } catch(e){}
+              });
+            } else {
+              updateUIPlaying(true);
+            }
+          }
+    
+          function pauseVideo() {
+            try { video.pause(); } catch (e) {}
+            updateUIPlaying(false);
+          }
+    
+          // Toggle handler
+          function toggleHandler(e) {
+            e.preventDefault();
+            if (video.paused || video.ended) {
+              playVideo();
+            } else {
+              pauseVideo();
+            }
+          }
+    
+          // Accessibility: keyboard on button
+          toggleBtn.addEventListener('click', toggleHandler);
+          toggleBtn.addEventListener('keydown', function (evt) {
+            if (evt.key === 'Enter' || evt.key === ' ') {
+              evt.preventDefault();
+              toggleHandler(evt);
+            }
+          });
+    
+          // Clicking the playing video toggles pause/play
+          video.addEventListener('click', function () {
+            if (video.paused) playVideo(); else pauseVideo();
+          });
+    
+          // When video ends, reset UI
+          video.addEventListener('ended', function () {
+            // pause & show overlay
+            pauseVideo();
+          });
+    
+          // IntersectionObserver: if scrolled out, pause to save CPU
+          if ('IntersectionObserver' in window) {
+            const io = new IntersectionObserver((entries) => {
+              entries.forEach(entry => {
+                if (!entry.isIntersecting && !video.paused) {
+                  pauseVideo();
+                }
+              });
+            }, { threshold: 0.25 });
+            io.observe(root);
+          }
+    
+          // On initial load, keep poster visible; do not autoplay with sound.
+          updateUIPlaying(false);
+    
+          // Touch/gesture guidance: remove the hint shortly after first user gesture if desired
+          function clearHintOnce() {
+            if (hint) {
+              hint.style.transition = 'opacity 240ms ease';
+              setTimeout(() => { hint.style.opacity = 0; }, 1200);
+            }
+            document.removeEventListener('touchstart', clearHintOnce);
+            document.removeEventListener('click', clearHintOnce);
+          }
+          document.addEventListener('touchstart', clearHintOnce, { once: true });
+          document.addEventListener('click', clearHintOnce, { once: true });
+        })();
+    </script>
+    <script>
+        (function(){
+          if (!window.gsap || !window.ScrollTrigger) {
+            console.warn('GSAP/ScrollTrigger not found — load GSAP if you want scroll-scrub typing.');
+            return;
+          }
+          gsap.registerPlugin(ScrollTrigger);
+        
+          const containerSelector = '.section-two-mobile-content';
+        
+          document.querySelectorAll(containerSelector).forEach(container => {
+            // gather elements
+            const elems = Array.from(container.querySelectorAll('h2, p'));
+            elems.forEach(el => {
+              // capture full text and replace with typed span + cursor
+              const fullText = el.textContent.trim();
+              el.innerHTML = `<span class="typed-text ${el.tagName === 'H2' ? 'typed-text-h2' : 'typed-text-p'}" aria-live="polite"></span><span class="typing-cursor">|</span>`;
+              const typedSpan = el.querySelector('.typed-text');
+              const proxy = { i: 0 };
+              const total = fullText.length;
+        
+              // ScrollTrigger tween: i goes 0 -> total, onUpdate writes substring
+              gsap.to(proxy, {
+                i: total,
+                ease: 'none',
+                onUpdate() {
+                  const count = Math.round(proxy.i);
+                  typedSpan.textContent = fullText.substr(0, count);
+                },
+                scrollTrigger: {
+                  trigger: el,
+                  start: 'top 85%',
+                  end: 'bottom 60%',
+                  scrub: true,
+                  // markers: true // enable while debugging
+                }
+              });
+            });
+          });
+        })();
+        </script>
+</div>
+</section>
+  
