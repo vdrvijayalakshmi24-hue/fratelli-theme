@@ -27,11 +27,10 @@
       }
       .section-five_content-bottom {
         width: 100%;
-        height: 50vh;
+        height: 70vh;
         background: linear-gradient(0deg, #4D6028 74.46%, rgba(0, 0, 0, 0) 100%);
         position: relative;
         z-index: 2;
-        margin-top: -120px;
       }
   
       /* Underlay container (we’ll sticky its child video/canvas) */
@@ -58,6 +57,9 @@
             background: #fff; color: #000; border: none; padding: 0.625rem 1.25rem;
             border-radius: 20px; font-weight: 600; cursor: pointer;
           }
+          .section-five-video-wine-mobile {
+            overflow: unset !important;
+        }
     </style>
     <div class="section-five_content"></div>
     <div id="scrolly-video4-wine-mobile-{{ section.id }}" class="section-five-video-wine-mobile"></div>
@@ -75,7 +77,7 @@
     <script>
         var sectionId   = "{{ section.id }}";
         var containerId = "scrolly-video4-wine-mobile-" + sectionId;
-        var videoSrc = "https://cdn.shopify.com/videos/c/o/v/9d0d7db685a0498da3add0992dd7b8ea.mp4";
+        var videoSrc = "https://cdn.shopify.com/videos/c/o/v/6686c0f38a224b8cafef4287410b1660.mp4";
         try {
           if (window.ScrollyVideo) {
             new ScrollyVideo({
@@ -83,6 +85,7 @@
               src: videoSrc,
               cover: true,
               sticky: false,
+              overflow: true,
             });
           }
         } catch (e) {
@@ -99,7 +102,7 @@
             gsap.to(innerSel2, {
               scrollTrigger: {
                 trigger: overlayEl2,
-                start: 'top 50%',
+                start: 'top 40%',
                 end: 'top 25%',
                 scrub: false,
                 markers: false,
