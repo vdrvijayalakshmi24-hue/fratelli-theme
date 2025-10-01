@@ -212,14 +212,15 @@
           var tl = gsap.timeline({
             onComplete: function() {
               localStorage.setItem(localKey, 'true');
-              
+              if (lenis) lenis.style.overflow = 'auto';
+              var pageContent = document.getElementById('page-content');
               // fade out the whole agegate root quickly to remove from flow
               gsap.to(root, {
                 autoAlpha: 0,
                 duration: 0.6,
                 onComplete: function() {
-                  if (lenis) lenis.style.overflow = 'auto';
-                  var pageContent = document.getElementById('page-content');
+                  {% comment %} if (lenis) lenis.style.overflow = 'auto';
+                  var pageContent = document.getElementById('page-content'); {% endcomment %}
                   hideAgeGateInstant();
                 }
               });
