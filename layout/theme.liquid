@@ -111,7 +111,7 @@
   }
 
   // Initialize Lenis
-  var lenis = new Lenis();
+  var lenis = new Lenis(config);
   window.__lenis = lenis; // expose for debugging / toggles from console
 
   // === RAF LOOP (required) ===
@@ -319,11 +319,11 @@
     <div class="PageContainer">
       {% section 'announcement' %}
       {% section 'header' %}
-      <div id="age-gate-section" style="display: none;">
+      <div id="age-gate-section">
       {% section 'age-gate' %}
       </div>
       
-      <div id="page-content" style="display: none;">
+      <div id="page-content">
         <main id="main" role="main">
           {{ content_for_layout }}
         </main>
@@ -340,7 +340,7 @@
     </div>
     
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
+      {% comment %} document.addEventListener('DOMContentLoaded', function() {
         const ageVerified = localStorage.getItem('agegateConfirmed_v1') === 'true';
         const body = document.body;
         const pageContent = document.getElementById('page-content');
@@ -359,7 +359,7 @@
           if (ageGateSection) ageGateSection.style.display = 'block';
           body.classList.add('age-gate-loading');
         }
-      });
+      }); {% endcomment %}
     </script>
     {% render 'bookthatapp-widgets' %}
   </body>

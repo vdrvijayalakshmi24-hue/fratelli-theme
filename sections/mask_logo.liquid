@@ -124,8 +124,8 @@
           transition: opacity 260ms ease;
         }
 
-        #hero-fullscreen-video:not(.is-playing) .hfv__video {
-          scale: 2.5;
+        #hero-fullscreen-video:not(.is-playing) {
+          scale: 1.5;
         }
     
         /* When video playing, hide overlay visually (but keep accessible) */
@@ -402,11 +402,11 @@
           const overlay = document.getElementById('hfv_overlay');
           const hint = document.getElementById('hfv_hint');
 
-          gsap.to(video, {
+          gsap.to(root, {
             scale: 1,               // final scale
             ease: 'none',          // linear for natural scroll-synced feel
             scrollTrigger: {
-              trigger: video,
+              trigger: root,
               start: 'top center',   // when section top hits viewport center
               end: 'bottom center',  // when section bottom hits viewport center
               scrub: true,           // smoothly sync with scroll
