@@ -9,7 +9,10 @@
   <!-- AgeGate overlay -->
   <section id="agegate-section-{{ section.id }}" class="agegate-container relative w-full overflow-hidden" role="dialog" aria-label="Age gate">
     <!-- Background image -->
-    {% if section.settings.background_image != blank %}
+    <div class="fullscreen-glassy-overlay absolute inset-0 w-full h-full agegate-bg">
+      <!-- Your content goes here -->
+    </div>
+    {% comment %} {% if section.settings.background_image != blank %}
       <img
         src="{{ section.settings.background_image | img_url: '2048x' }}"
         alt="Background"
@@ -32,7 +35,8 @@
         loading="eager"
         decoding="async"
       />
-    {% endif %}
+      
+    {% endif %} {% endcomment %}
 
     <!-- Glass overlay -->
     <div class="absolute right-0 left-0 bottom-0 flex items-center justify-center pointer-events-none">
@@ -86,6 +90,19 @@
 <style>
 /* Minimal Tailwind-like utilities needed by this section */
 /* Layout helpers */
+.fullscreen-glassy-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .relative { position: relative; }
 .absolute { position: absolute; }
 .inset-0 { top:0; right:0; bottom:0; left:0; }
@@ -148,6 +165,8 @@
     function hideAgeGateInstant() {
       var root = $(rootSel);
       if (root) root.style.display = 'none';
+      const lenis = document.querySelector('html.lenis');
+      if (lenis) lenis.style.overflow = 'auto';
       var pageContent = document.getElementById('page-content');
       if (pageContent) {
         pageContent.style.display = 'block';
