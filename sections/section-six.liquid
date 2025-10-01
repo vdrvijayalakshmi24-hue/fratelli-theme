@@ -12,7 +12,7 @@
     .section-six_content {
         position: absolute;
         width: 100%;
-        height: 50vh;
+        height: 70vh;
         transform: rotate(180deg);
         background: linear-gradient(360deg, #A38C78 73.06%, rgba(201, 160, 133, 0) 100%);
         z-index: 2;
@@ -23,7 +23,7 @@
         flex-direction: column;
         justify-content: flex-end;
         height: 100%;
-        padding: 20px;
+        padding: 0 20px 50px 20px;
       }
       .section-six_content-bottom {
         width: 100%;
@@ -62,7 +62,7 @@
         }
     </style>
     <div class="section-six_content"></div>
-    <div id="scrolly-video4-wine-mobile-{{ section.id }}" class="section-six-video-wine-mobile"></div>
+    <div id="section-six-video-wine-mobile-{{ section.id }}" class="section-six-video-wine-mobile"></div>
     <div class="section-six_content-bottom">
         <div class="section-six_content-bottom-inner" id="section-six-inner-wine-mobile-{{ section.id }}">
             <h1 class="section-six-wine-mobile-h1" id="section-six-h1-wine-mobile-{{ section.id }}">Pour more into every moment</h1>
@@ -76,7 +76,7 @@
     </div>
     <script>
         var sectionId   = "{{ section.id }}";
-        var containerId = "scrolly-video4-wine-mobile-" + sectionId;
+        var containerId = "section-six-video-wine-mobile-" + sectionId;
         var videoSrc = "https://cdn.shopify.com/videos/c/o/v/25e8f24bf08841a6aaa2e57a7ad482f2.mp4";
         try {
           if (window.ScrollyVideo) {
@@ -85,35 +85,36 @@
               src: videoSrc,
               cover: true,
               sticky: false,
+              overflow: true,
             });
           }
         } catch (e) {
           console.warn("[SV4] ScrollyVideo error:", e);
         }
-        var innerSel3 = "#section-three-inner-wine-mobile-" + sectionId;
-        var overlaySel3 = ".section-three_content-bottom";
-        var overlayEl3 = document.querySelector(overlaySel3);
-        var innerEl3 = document.querySelector(innerSel3);
-        if (window.gsap && window.ScrollTrigger && innerEl3) {
+        var innerSel5 = "#section-six-inner-wine-mobile-" + sectionId;
+        var overlaySel5 = ".section-six_content-bottom";
+        var overlayEl5 = document.querySelector(overlaySel5);
+        var innerEl5 = document.querySelector(innerSel5);
+        if (window.gsap && window.ScrollTrigger && innerEl5) {
             gsap.registerPlugin(ScrollTrigger);
-            gsap.set(innerEl3, { opacity: 0 });
+            gsap.set(innerEl5, { opacity: 0 });
     
-            gsap.to(innerSel3, {
+            gsap.to(innerSel5, {
               scrollTrigger: {
-                trigger: overlayEl3,
+                trigger: overlayEl5,
                 start: 'top 40%',
                 end: 'top 25%',
                 scrub: false,
                 markers: false,
                 onEnter: () => {
-                  gsap.to(innerSel3, {
+                  gsap.to(innerSel5, {
                     opacity: 1,
                     duration: 1.2,
                     ease: 'power2.out'
                   });
                 },
                 onLeaveBack: () => {
-                  gsap.to(innerSel3, {
+                  gsap.to(innerSel5, {
                     opacity: 0,
                     duration: 0.6,
                     ease: 'power2.in'
