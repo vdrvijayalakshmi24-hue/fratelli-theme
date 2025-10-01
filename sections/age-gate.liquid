@@ -166,8 +166,6 @@
       var root = $(rootSel);
       if (root) root.style.display = 'none';
       const lenis = document.querySelector('html.lenis');
-      if (lenis) lenis.style.overflow = 'auto';
-      var pageContent = document.getElementById('page-content');
       if (pageContent) {
         pageContent.style.display = 'block';
         // Dispatch a custom event to notify that the page content is now visible
@@ -176,12 +174,12 @@
         }));
       }
     }
-
+    
     function showAgeGate() {
       var root = $(rootSel);
       if (root) root.style.display = 'block';
     }
-
+    
     function init() {
       // If previously confirmed, skip gate
       {% comment %} var confirmed = localStorage.getItem(localKey) === 'true';
@@ -199,33 +197,35 @@
         if (navTitle) navTitle.style.color = "#8E1C21";
         if (navIcon) navIcon.style.color = "#8E1C21";
       } catch(e) { /* ignore */ }
-
+      
       var yesBtn = $(yesSel);
       var noBtn = $(noSel);
       var content = $(contentSel);
       var glass = $(glassSel);
       var root = $(sectionSel);
-
+      
       if (!yesBtn || !content || !glass || !root) return;
-
+      
       yesBtn.addEventListener('click', function() {
         // Timeline: scale glass, fade out content, then mark confirmed and hide overlay
         if (window.gsap) {
           var tl = gsap.timeline({
             onComplete: function() {
               localStorage.setItem(localKey, 'true');
-
+              
               // fade out the whole agegate root quickly to remove from flow
               gsap.to(root, {
                 autoAlpha: 0,
                 duration: 0.6,
                 onComplete: function() {
+                  if (lenis) lenis.style.overflow = 'auto';
+                  var pageContent = document.getElementById('page-content');
                   hideAgeGateInstant();
                 }
               });
             }
           });
-
+          
           tl.to(glass, { scale: 3, duration: 1.2, ease: 'power3.out' }, 0);
           tl.to(content, { autoAlpha: 0, duration: 0.6 }, 0);
         } else {
@@ -233,7 +233,7 @@
           localStorage.setItem(localKey, 'true');
           hideAgeGateInstant();
         }
-
+        
         // set nav styles to white / transparent (like React version)
         var navTitle = document.querySelector('.nav-title');
         var navIcon = document.querySelector('.nav-icon');
@@ -242,7 +242,7 @@
         if (navIcon) navIcon.style.color = "white";
         if (navWrapper) navWrapper.style.background = "transparent";
       });
-
+      
       if (noBtn) {
         noBtn.addEventListener('click', function() {
           // shake the content to indicate negative response
@@ -262,7 +262,7 @@
         setTimeout(checkGSAPAndInit, 100);
       }
     }
-
+    
     // Run init when DOM is ready and GSAP is loaded
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
       checkGSAPAndInit();
