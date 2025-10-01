@@ -165,7 +165,7 @@
     function hideAgeGateInstant() {
       var root = $(rootSel);
       if (root) root.style.display = 'none';
-      const lenis = document.querySelector('html.lenis');
+      var pageContent = document.getElementById('page-content');
       if (pageContent) {
         pageContent.style.display = 'block';
         // Dispatch a custom event to notify that the page content is now visible
@@ -212,15 +212,13 @@
           var tl = gsap.timeline({
             onComplete: function() {
               localStorage.setItem(localKey, 'true');
+              const lenis = document.querySelector('html.lenis');
               if (lenis) lenis.style.overflow = 'auto';
-              var pageContent = document.getElementById('page-content');
               // fade out the whole agegate root quickly to remove from flow
               gsap.to(root, {
                 autoAlpha: 0,
                 duration: 0.6,
                 onComplete: function() {
-                  {% comment %} if (lenis) lenis.style.overflow = 'auto';
-                  var pageContent = document.getElementById('page-content'); {% endcomment %}
                   hideAgeGateInstant();
                 }
               });
