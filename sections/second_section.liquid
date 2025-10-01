@@ -1,0 +1,115 @@
+{% schema %}
+{
+  "name": "Second Section",
+  "tag": "section",
+  "class": "Second Section",
+  "settings": [],
+  "presets": [
+    {
+      "name": "Second Section"
+    }
+  ]
+}
+{% endschema %}
+
+<section>
+  <style>
+    .section-two-mobile {
+      position: relative;
+      min-height: 120vh;
+      width: 100%;
+      opacity: 0.3;
+    }
+
+    .section-two-mobile-content {
+      position: absolute;
+      bottom: 26%;
+      text-align: center;
+      width: 100%;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .section-two-mobile-content h2 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .section-two-mobile-content p {
+      font-size: 1.2rem;
+      line-height: 1.6;
+      color: #fff;
+    }
+
+    .typed-text {
+      white-space: pre-wrap;
+      text-align: center;
+    }
+
+    .typing-cursor {
+      display: none;
+      margin-left: 6px;
+      width: 10px;
+      animation: blink 1s steps(2, start) infinite;
+      vertical-align: middle;
+      color: #fff;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+  </style>
+
+  <div class="section-two-mobile">
+    <img src="{{ 'section_2_mobile.png' | asset_url }}" alt="Mask Logo" width="100%" height="200vh">
+    <div class="section-two-mobile-content">
+      <h2 style="max-width: 300px">India's finest Wine Makers</h2>
+      <p>From the heart of Akluj to tables across the world, Fratelli is more than wine, it's a story of heritage, craftsmanship and seven brothers bound by a dream. Every bottle is a testamentto passion and the spirit ofPour More Into Life.</p>
+    </div>
+</div>
+
+  <script>
+    window.onload = function () {
+      if (!window.gsap || !window.ScrollTrigger) {
+        console.warn('GSAP/ScrollTrigger not found');
+        return;
+      }
+
+      gsap.registerPlugin(ScrollTrigger);
+
+      const containerSelector = '.section-two-mobile-content';
+
+      document.querySelectorAll(containerSelector).forEach(container => {
+        const elems = Array.from(container.querySelectorAll('p'));
+
+        elems.forEach(el => {
+          const fullText = el.textContent.trim();
+          el.innerHTML = `<span class="typed-text ${el.tagName === 'H2' ? 'typed-text-h2' : 'typed-text-p'}" aria-live="polite"></span><span class="typing-cursor">|</span>`;
+          const typedSpan = el.querySelector('.typed-text');
+          const proxy = { i: 0 };
+          const total = fullText.length;
+
+          gsap.to(proxy, {
+            i: total,
+            ease: 'none',
+            onUpdate() {
+              const count = Math.round(proxy.i);
+              typedSpan.textContent = fullText.substr(0, count);
+            },
+            scrollTrigger: {
+              trigger: el,
+              start: 'top bottom',
+              end: 'bottom 90%',
+              scrub: true,
+              markers: false
+            }
+          });
+        });
+      });
+    };
+  </script>
+</section>

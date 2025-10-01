@@ -1,0 +1,398 @@
+{% schema %}
+{
+  "name": "Hero Mask Section",
+  "tag": "section",
+  "class": "hero-section",
+  "settings": [],
+  "presets": [
+    {
+      "name": "Hero Mask"
+    }
+  ]
+}
+{% endschema %}
+
+<style>
+  .hero-section {
+    position: relative;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+    background: black;
+  }
+
+  .mask-wrapper {
+    width: 100%;
+    height: 100%;
+    mask-image: url('{{ "mask_logo_latest.svg" | asset_url }}');
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: 2500% 2500%;
+    opacity: 1;
+  }
+
+  .mask-wrapper video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+</style>
+
+
+<style>
+    /* Full viewport container */
+    #hero-fullscreen-video {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      {% comment %} overflow: hidden; {% endcomment %}
+      background: #000;
+    }
+
+    /* Video element fits and covers viewport */
+    #hero-fullscreen-video .hfv__video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      will-change: transform, opacity;
+      display: block;
+      z-index: 2; /* ensure video sits above poster */
+    }
+
+    /* Poster background for instant paint */
+    #hero-fullscreen-video .hfv__poster {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      z-index: 1;
+      transition: opacity 320ms ease, visibility 320ms;
+    }
+
+    #hero-fullscreen-video.is-playing .hfv__poster {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    /* Overlay for controls (centered) */
+    #hero-fullscreen-video .hfv__overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 4;
+      pointer-events: auto;
+      background: linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.10));
+      transition: opacity 260ms ease;
+    }
+
+    #hero-fullscreen-video:not(.is-playing) {
+      scale: 1.5;
+    }
+
+    /* When video playing, hide overlay visually (but keep accessible) */
+    #hero-fullscreen-video.is-playing .hfv__overlay {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Play/Pause button */
+    .hfv__btn {
+      width: 96px;
+      height: 96px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.42);
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.06);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      transition: transform 180ms cubic-bezier(.2,.9,.3,1), opacity 180ms;
+    }
+    .hfv__btn:focus { outline: 3px solid rgba(255,255,255,0.12); transform: scale(1.03); }
+
+    /* Small hint below button */
+    .hfv__hint {
+      margin-top: 12px;
+      color: rgba(255,255,255,0.92);
+      font-size: 13px;
+      text-align: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      letter-spacing: 0.02em;
+      z-index: 5;
+    }
+
+    @media (max-width:720px) {
+      .hfv__btn { width: 72px; height: 72px; }
+      .hfv__hint { font-size: 12px; }
+    }
+</style>
+
+<div class="hero-section">
+  <div class="mask-wrapper">
+    <div id="hero-fullscreen-video" class="hero-fullscreen-video">
+        <!-- Poster (Unsplash) - visible immediately while video loads -->
+        <div class="hfv__poster" aria-hidden="true"
+             style="background-image:url('https://cdn.shopify.com/s/files/1/0491/6628/7016/files/Mobile_Thumbnail.png?v=1759289819');"></div>
+      
+        <!-- Video element - hard-coded asset_url -->
+        <video
+          id="hfv_video"
+          class="hfv__video"
+          preload="auto"
+          playsinline
+          webkit-playsinline
+          poster="https://cdn.shopify.com/s/files/1/0491/6628/7016/files/Mobile_Thumbnail.png?v=1759289819"
+          aria-label="Hero background video"
+        >
+          <source src="{{ 'Brand_Video.mp4' | asset_url }}" type="video/mp4">
+          Your browser does not support HTML5 video.
+        </video>
+      
+      
+      
+        <!-- Overlay and controls -->
+        <div class="hfv__overlay" id="hfv_overlay" role="group" aria-label="Video controls">
+          <div style="text-align:center;">
+            <button id="hfv_toggle" class="hfv__btn" aria-label="Play video" aria-pressed="false" type="button">
+              <!-- Play SVG (your provided SVG) -->
+              <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                <mask id="hfv_mask" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="72" height="72">
+                  <rect width="72" height="72" fill="#D9D9D9"/>
+                </mask>
+                <g mask="url(#hfv_mask)">
+                  <path d="M28.5 49.5L49.5 36L28.5 22.5V49.5ZM36 66C31.85 66 27.95 65.2125 24.3 63.6375C20.65 62.0625 17.475 59.925 14.775 57.225C12.075 54.525 9.9375 51.35 8.3625 47.7C6.7875 44.05 6 40.15 6 36C6 31.85 6.7875 27.95 8.3625 24.3C9.9375 20.65 12.075 17.475 14.775 14.775C17.475 12.075 20.65 9.9375 24.3 8.3625C27.95 6.7875 31.85 6 36 6C40.15 6 44.05 6.7875 47.7 8.3625C51.35 9.9375 54.525 12.075 57.225 14.775C59.925 17.475 62.0625 20.65 63.6375 24.3C65.2125 27.95 66 31.85 66 36C66 40.15 65.2125 44.05 63.6375 47.7C62.0625 51.35 59.925 54.525 57.225 57.225C54.525 59.925 51.35 62.0625 47.7 63.6375C44.05 65.2125 40.15 66 36 66ZM36 60C42.7 60 48.375 57.675 53.025 53.025C57.675 48.375 60 42.7 60 36C60 29.3 57.675 23.625 53.025 18.975C48.375 14.325 42.7 12 36 12C29.3 12 23.625 14.325 18.975 18.975C14.325 23.625 12 29.3 12 36C12 42.7 14.325 48.375 18.975 53.025C23.625 57.675 29.3 60 36 60Z" fill="white"/>
+                </g>
+              </svg>
+            </button>
+      
+            <div class="hfv__hint" id="hfv_hint">Tap to play with sound</div>
+          </div>
+        </div>
+    </div>
+  </div>
+  <div>
+  </div>
+ 
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const isMobile = window.innerWidth <= 767;
+    const isTablet = window.innerWidth >= 768 && window.innerWidth <= 1024;
+
+    let initialMaskPos, initialMaskSize, maskSize;
+
+    if (isMobile) {
+      initialMaskPos = '50% 24%';
+      initialMaskSize = '3000% 3000%';
+      maskSize = '50% 50%';
+    } else if (isTablet) {
+      initialMaskPos = '50% 50%';
+      initialMaskSize = '3500% 3500%';
+      maskSize = '30% 30%';
+    } else {
+      initialMaskPos = '50% 50%';
+      initialMaskSize = '3500% 3500%';
+      maskSize = '16% 12%';
+    }
+
+    gsap.set('.mask-wrapper', {
+      maskPosition: initialMaskPos,
+      maskSize: initialMaskSize,
+    });
+
+    gsap.registerPlugin(ScrollTrigger);
+
+const tl = gsap.timeline({
+  scrollTrigger: {
+    trigger: '.hero-section',
+    start: 'top top',
+    end: '+=70%',
+    scrub: true,
+    pin: true,
+
+    onUpdate: (self) => {
+      const progress = self.progress;
+      if (progress >= 0.5) {
+        gsap.to('.section-two-mobile', {
+          marginTop: '-50vh',
+        });
+      }
+    },
+
+    onLeave: () => {
+      gsap.to('.section-two-mobile', {
+        position: 'relative',
+        opacity: 1,
+        duration: 0.5,
+      });
+    },
+
+    onEnterBack: () => {
+      gsap.to('.section-two-mobile', {
+        position: 'relative',
+        opacity: 0,
+        duration: 0.7,
+        marginTop: 0
+      });
+    }
+  }
+});
+
+    tl.to('.fade-out', { opacity: 0, ease: 'power1.inOut' })
+      .to('.scale-out', { scale: 1, ease: 'power1.inOut' })
+      .to('.mask-wrapper', { maskSize: maskSize, ease: 'power1.inOut' }, '<')
+      .to('.mask-wrapper', { opacity: 0, duration: 0.5 });
+  });
+</script>
+
+<script>
+    (function () {
+      const root = document.getElementById('hero-fullscreen-video');
+      const video = document.getElementById('hfv_video');
+      const toggleBtn = document.getElementById('hfv_toggle');
+      const overlay = document.getElementById('hfv_overlay');
+      const hint = document.getElementById('hfv_hint');
+
+      gsap.to(root, {
+        scale: 1,               // final scale
+        ease: 'none',          // linear for natural scroll-synced feel
+        scrollTrigger: {
+          trigger: root,
+          start: 'top center',   // when section top hits viewport center
+          end: 'bottom center',  // when section bottom hits viewport center
+          scrub: true,           // smoothly sync with scroll
+          // markers: true,      // enable for debugging
+        }
+      });
+
+      // Ensure initial state: poster visible; video muted initially to allow preload
+      video.muted = true;
+      video.preload = 'auto';
+      // Do not autoplay with audio — click must unmute
+      let isPlaying = false;
+
+      function updateUIPlaying(playing) {
+        isPlaying = playing;
+        const poster = root.querySelector('.hfv__poster');
+        if (playing) {
+          root.classList.add('is-playing');
+          toggleBtn.setAttribute('aria-label', 'Pause video');
+          toggleBtn.setAttribute('aria-pressed', 'true');
+          if (hint) hint.style.opacity = 0;
+          if (poster) {
+            poster.style.opacity = 0;
+            poster.style.visibility = 'hidden';
+            poster.style.pointerEvents = 'none';
+          }
+        } else {
+          root.classList.remove('is-playing');
+          toggleBtn.setAttribute('aria-label', 'Play video');
+          toggleBtn.setAttribute('aria-pressed', 'false');
+          if (hint) hint.style.opacity = 1;
+          if (poster) {
+            poster.style.opacity = '';
+            poster.style.visibility = '';
+            poster.style.pointerEvents = '';
+          }
+        }
+      }
+
+      // Play (unmute first to allow audio)
+      function playVideo() {
+        try {
+          // Unmute as a direct result of user gesture
+          video.muted = false;
+          // small default volume if user hasn't set
+          if (typeof video.volume === 'number' && video.volume === 1) video.volume = 0.95;
+        } catch (e) {
+          // ignore
+        }
+
+        const p = video.play();
+        if (p && typeof p.then === 'function') {
+          p.then(() => {
+            updateUIPlaying(true);
+          }).catch((err) => {
+            // play prevented: keep muted as fallback, try to play muted
+            console.warn('Play rejected:', err);
+            try {
+              video.muted = true;
+              video.play().then(() => updateUIPlaying(true)).catch(()=>{});
+            } catch(e){}
+          });
+        } else {
+          updateUIPlaying(true);
+        }
+      }
+
+      function pauseVideo() {
+        try { video.pause(); } catch (e) {}
+        updateUIPlaying(false);
+      }
+
+      // Toggle handler
+      function toggleHandler(e) {
+        e.preventDefault();
+        if (video.paused || video.ended) {
+          playVideo();
+        } else {
+          pauseVideo();
+        }
+      }
+
+      // Accessibility: keyboard on button
+      toggleBtn.addEventListener('click', toggleHandler);
+      toggleBtn.addEventListener('keydown', function (evt) {
+        if (evt.key === 'Enter' || evt.key === ' ') {
+          evt.preventDefault();
+          toggleHandler(evt);
+        }
+      });
+
+      // Clicking the playing video toggles pause/play
+      video.addEventListener('click', function () {
+        if (video.paused) playVideo(); else pauseVideo();
+      });
+
+      // When video ends, reset UI
+      video.addEventListener('ended', function () {
+        // pause & show overlay
+        pauseVideo();
+      });
+
+      // IntersectionObserver: if scrolled out, pause to save CPU
+      if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (!entry.isIntersecting && !video.paused) {
+              pauseVideo();
+            }
+          });
+        }, { threshold: 0.25 });
+        io.observe(root);
+      }
+
+      // On initial load, keep poster visible; do not autoplay with sound.
+      updateUIPlaying(false);
+
+      // Touch/gesture guidance: remove the hint shortly after first user gesture if desired
+      function clearHintOnce() {
+        if (hint) {
+          hint.style.transition = 'opacity 240ms ease';
+          setTimeout(() => { hint.style.opacity = 0; }, 1200);
+        }
+        document.removeEventListener('touchstart', clearHintOnce);
+        document.removeEventListener('click', clearHintOnce);
+      }
+      document.addEventListener('touchstart', clearHintOnce, { once: true });
+      document.addEventListener('click', clearHintOnce, { once: true });
+    })();
+</script>
