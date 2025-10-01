@@ -8,6 +8,7 @@
     <style>
     .section-three {
         position: relative;
+        opacity: 0.8;
     }
     .section-three_content {
         position: absolute;
@@ -102,7 +103,7 @@
             gsap.to(innerSel, {
               scrollTrigger: {
                 trigger: overlayEl,
-                start: 'top -20%',
+                start: 'top center',
                 end: 'bottom center',
                 scrub: false,
                 markers: false,
@@ -125,6 +126,44 @@
           } else {
             console.warn('[SV4] GSAP/ScrollTrigger missing — inner fade skipped.');
           }
+
+          gsap.timeline({
+            scrollTrigger: {
+              trigger: '.section-three',
+              start: 'top 40%',
+              end: 'bottom 50%',
+              scrub: true,
+              markers: false,
+              onEnter: () => {
+                gsap.to('.section-three', {
+                  opacity: 1,
+                  duration: 0.5,
+                  ease: 'power2.out'
+                });
+              },
+              onEnterBack: () => {
+                gsap.to('.section-three', {
+                  opacity: 1,
+                  duration: 0.5,
+                  ease: 'power2.in'
+                });
+              },
+              onLeave: () => {
+                gsap.to('.section-three', {
+                  opacity: 0.8,
+                  duration: 0.5,
+                  ease: 'power2.in'
+                });
+              },
+              onLeaveBack: () => {
+                gsap.to('.section-three', {
+                  opacity: 0.8,
+                  ease: 'power2.out'
+                });
+              }
+            }
+          })
+
     </script>
 </section>
 
