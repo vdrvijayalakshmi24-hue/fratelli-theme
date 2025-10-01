@@ -183,75 +183,51 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const isMobile = window.innerWidth <= 767;
-    const isTablet = window.innerWidth >= 768 && window.innerWidth <= 1024;
-
-    let initialMaskPos, initialMaskSize, maskSize;
-
-    if (isMobile) {
-      initialMaskPos = '50% 24%';
-      initialMaskSize = '3000% 3000%';
-      maskSize = '50% 50%';
-    } else if (isTablet) {
-      initialMaskPos = '50% 50%';
-      initialMaskSize = '3500% 3500%';
-      maskSize = '30% 30%';
-    } else {
-      initialMaskPos = '50% 50%';
-      initialMaskSize = '3500% 3500%';
-      maskSize = '16% 12%';
-    }
-
-    gsap.set('.mask-wrapper', {
-      maskPosition: initialMaskPos,
-      maskSize: initialMaskSize,
-    });
-
-    gsap.registerPlugin(ScrollTrigger);
-
-const tl = gsap.timeline({
-  scrollTrigger: {
-    trigger: '.hero-section',
-    start: 'top top',
-    end: '+=70%',
-    scrub: true,
-    pin: true,
-
-    onUpdate: (self) => {
-      const progress = self.progress;
-      if (progress >= 0.5) {
-        gsap.to('.section-two-mobile', {
-          marginTop: '-50vh',
-        });
+    document.addEventListener('DOMContentLoaded', function () {
+      const isMobile = window.innerWidth <= 767;
+      const isTablet = window.innerWidth >= 768 && window.innerWidth <= 1024;
+    
+      let initialMaskPos, initialMaskSize, maskSize;
+    
+      if (isMobile) {
+        initialMaskPos = '50% 23%';
+        initialMaskSize = '4000% 4000%';
+        maskSize = '50% 50%';
+      } else if (isTablet) {
+        initialMaskPos = '50% 50%';
+        initialMaskSize = '3500% 3500%';
+        maskSize = '30% 30%';
+      } else {
+        initialMaskPos = '50% 50%';
+        initialMaskSize = '3500% 3500%';
+        maskSize = '16% 12%';
       }
-    },
-
-    onLeave: () => {
-      gsap.to('.section-two-mobile', {
-        position: 'relative',
-        opacity: 1,
-        duration: 0.5,
+    
+      gsap.set('.mask-wrapper', {
+        maskPosition: initialMaskPos,
+        maskSize: initialMaskSize,
       });
-    },
-
-    onEnterBack: () => {
-      gsap.to('.section-two-mobile', {
-        position: 'relative',
-        opacity: 0,
-        duration: 0.7,
-        marginTop: 0
+    
+      gsap.registerPlugin(ScrollTrigger);
+    
+      {% comment %} let hasShifted = false; {% endcomment %}
+    
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: '.hero-section',
+          start: 'top top',
+          end: '+=70%',
+          scrub: true,
+          pin: true
+        }
       });
-    }
-  }
-});
-
-    tl.to('.fade-out', { opacity: 0, ease: 'power1.inOut' })
-      .to('.scale-out', { scale: 1, ease: 'power1.inOut' })
-      .to('.mask-wrapper', { maskSize: maskSize, ease: 'power1.inOut' }, '<')
-      .to('.mask-wrapper', { opacity: 0, duration: 0.5 });
-  });
-</script>
+    
+      tl.to('.fade-out', { opacity: 0, ease: 'power1.inOut' })
+        .to('.scale-out', { scale: 1, ease: 'power1.inOut' })
+        .to('.mask-wrapper', { maskSize: maskSize, ease: 'power1.inOut' }, '<')
+        .to('.mask-wrapper', { opacity: 0, duration: 0.5 });
+    });
+    </script>
 
 <script>
     (function () {

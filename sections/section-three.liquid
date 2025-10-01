@@ -22,6 +22,7 @@
         display: flex;
         flex-direction: column;
         justify-content: flex-end;
+        align-items: center;
         height: 100%;
         padding: 0 20px 50px 20px;
       }
@@ -65,9 +66,9 @@
     <div id="scrolly-video4-wine-mobile-{{ section.id }}" class="section-three-video-wine-mobile"></div>
     <div class="section-three_content-bottom">
         <div class="section-three_content-bottom-inner" id="section-three-inner-wine-mobile-{{ section.id }}">
-            <h1 class="section-three-wine-mobile-h1" id="section-three-h1-wine-mobile-{{ section.id }}">Pour more into every moment</h1>
+            <h1 class="section-three-wine-mobile-h1" id="section-three-h1-wine-mobile-{{ section.id }}" style="max-width: 320px;">Pour more into every moment</h1>
             <p class="section-three-wine-mobile-p" id="section-three-p1-wine-mobile-{{ section.id }}">
-              Be it a quiet evening or a grand celebration, our wines bring richness and artistry to every occasion because there’s something for everyone
+              Be it a quiet evening or a grand celebration, our wines bring richness and artistry to every occasion because there's something for everyone
             </p>
             <div style="margin-top: 1.25rem;">
               <button type="button" class="section-three-wine-mobile-wine-btn" tabindex="-1">EXPLORE OUR RANGE</button>
@@ -101,8 +102,8 @@
             gsap.to(innerSel, {
               scrollTrigger: {
                 trigger: overlayEl,
-                start: 'top 40%',
-                end: 'top 25%',
+                start: 'top -20%',
+                end: 'bottom center',
                 scrub: false,
                 markers: false,
                 onEnter: () => {
