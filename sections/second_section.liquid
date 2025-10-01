@@ -18,7 +18,7 @@
       position: relative;
       min-height: 120vh;
       width: 100%;
-      opacity: 0.3;
+      opacity: 0;
     }
 
     .section-two-mobile-content {
@@ -84,9 +84,9 @@
       gsap.timeline({
         scrollTrigger: {
           trigger: '.section-two-mobile',
-          start: 'top 60%',
+          start: 'top 55%',
           end: 'bottom 40%',
-          scrub: false,
+          scrub: true,
           markers: false,
           onEnter: () => {
             gsap.to('.section-two-mobile', {
@@ -111,8 +111,7 @@
           },
           onLeaveBack: () => {
             gsap.to('.section-two-mobile', {
-              opacity: 0.5,
-              duration: 0.5,
+              opacity: 0,
               ease: 'power2.out'
             });
           }
@@ -142,8 +141,7 @@
               trigger: el,
               start: 'top bottom',
               end: 'bottom 90%',
-              scrub: true,
-              duration: 2,
+              scrub: 5,
               markers: false
             }
           });
