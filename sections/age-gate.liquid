@@ -7,7 +7,7 @@
 
 <div id="agegate-root-{{ section.id }}" class="agegate-root">
   <!-- AgeGate overlay -->
-  <section id="agegate-section-{{ section.id }}" class="agegate-container relative w-full h-screen overflow-hidden" role="dialog" aria-label="Age gate">
+  <section id="agegate-section-{{ section.id }}" class="agegate-container relative w-full overflow-hidden" role="dialog" aria-label="Age gate">
     <!-- Background image -->
     {% if section.settings.background_image != blank %}
       <img
@@ -122,8 +122,8 @@
 .bg-transparent { background: transparent; }
 
 /* Utility used for fade animations via GSAP (GSAP uses inline styles) */
-.agegate-root { position: relative; z-index: 99999; }
-.agegate-container { z-index: 99999; }
+.agegate-root { position: absolute; z-index: 99999; inset: 0; }
+.agegate-container { z-index: 99999; height: 100%; }
 
 /* small responsive fix for question text */
 @media (max-width: 640px) {
@@ -165,14 +165,14 @@
 
     function init() {
       // If previously confirmed, skip gate
-      var confirmed = localStorage.getItem(localKey) === 'true';
+      {% comment %} var confirmed = localStorage.getItem(localKey) === 'true';
       if (confirmed) {
         hideAgeGateInstant();
         return;
       } else {
         showAgeGate();
-      }
-
+      } {% endcomment %}
+      showAgeGate();
       // Mirror React useEffect: set nav colors initially
       try {
         var navTitle = document.querySelector('.nav-title');
