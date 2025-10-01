@@ -203,7 +203,7 @@
       <div id="hero-fullscreen-video" class="hero-fullscreen-video">
           <!-- Poster (Unsplash) - visible immediately while video loads -->
           <div class="hfv__poster" aria-hidden="true"
-               style="background-image:url('https://images.unsplash.com/photo-1506765515384-028b60a970df?auto=format&fit=crop&w=2000&q=80');"></div>
+               style="background-image:url('https://cdn.shopify.com/s/files/1/0491/6628/7016/files/Mobile_Thumbnail.png?v=1759289819');"></div>
         
           <!-- Video element - hard-coded asset_url -->
           <video
@@ -212,7 +212,7 @@
             preload="auto"
             playsinline
             webkit-playsinline
-            poster="https://images.unsplash.com/photo-1506765515384-028b60a970df?auto=format&fit=crop&w=2000&q=80"
+            poster="https://cdn.shopify.com/s/files/1/0491/6628/7016/files/Mobile_Thumbnail.png?v=1759289819"
             aria-label="Hero background video"
           >
             <source src="{{ 'Brand_Video.mp4' | asset_url }}" type="video/mp4">
@@ -568,10 +568,10 @@
                 },
                 scrollTrigger: {
                   trigger: el,
-                  duration: 2,
-                  start: 'top 70%',
+                  start: 'top 90%',
                   end: 'bottom 60%',
-                  scrub: "+=150%",
+                  scrub: true,
+                  markers: false
                   // markers: true // enable while debugging
                 }
               });
