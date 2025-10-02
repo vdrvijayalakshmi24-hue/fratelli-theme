@@ -23,8 +23,7 @@
 
     .section-two-mobile-content {
       position: absolute;
-      bottom: 26%;
-      text-align: center;
+      bottom: 45%;
       width: 100%;
       padding: 20px;
       display: flex;
@@ -37,17 +36,18 @@
       margin-bottom: 20px;
       color: #fff;
       font-weight: 700;
+      text-align: center;
     }
 
     .section-two-mobile-content p {
       font-size: 1.2rem;
       line-height: 1.6;
-      color: #fff;
     }
 
     .typed-text {
+      isolation: isolate;
       white-space: pre-wrap;
-      text-align: center;
+      font-size: 1rem;
     }
 
     .typing-cursor {
@@ -62,13 +62,37 @@
     @keyframes blink {
       50% { opacity: 0; }
     }
+    .section-two-mobile-content-text {
+        position: relative;
+        width: 100%;
+        max-width: 270px;
+    }
+    .section-two-mobile-content-text > .original-text {
+        position: absolute;
+        color: #ccc;
+        text-align: left;
+        line-height: 1.5;
+        letter-spacing: 0.5px;
+        font-size: 1rem;
+    }
+    .section-two-mobile-content-text > .overlay-text {
+        position: absolute;
+        color: #fff;
+        text-align: left;
+        line-height: 1.5;
+        letter-spacing: 0.5px;
+        font-size: 1rem;
+    }
   </style>
 
   <div class="section-two-mobile">
     <img src="{{ 'section_2_mobile.png' | asset_url }}" alt="Mask Logo" width="100%" height="200vh">
     <div class="section-two-mobile-content">
       <h2 style="max-width: 300px">India's finest Wine Makers</h2>
-      <p>From the heart of Akluj to tables across the world, Fratelli is more than wine, it's a story of heritage, craftsmanship and seven brothers bound by a dream. Every bottle is a testamentto passion and the spirit ofPour More Into Life.</p>
+      <div class="section-two-mobile-content-text">
+          <p class="original-text">From the heart of Akluj to tables    across the world, Fratelli is more    than wine, it's a story of heritage, craftsmanship and seven brothers bound by a dream. Every bottle is a testamentto passion and the      spirit of Pour More Into Life.</p>
+          <p class="overlay-text">From the heart of Akluj to tables    across the world, Fratelli is more    than wine, it's a story of heritage, craftsmanship and seven brothers bound by a dream. Every bottle is a testamentto passion and the      spirit of Pour More Into Life.</p>
+      </div>
     </div>
 </div>
 
@@ -121,11 +145,11 @@
       const containerSelector = '.section-two-mobile-content';
 
       document.querySelectorAll(containerSelector).forEach(container => {
-        const elems = Array.from(container.querySelectorAll('p'));
+        const elems = Array.from(container.querySelectorAll('.overlay-text'));
 
         elems.forEach(el => {
           const fullText = el.textContent.trim();
-          el.innerHTML = `<span class="typed-text ${el.tagName === 'H2' ? 'typed-text-h2' : 'typed-text-p'}" aria-live="polite"></span><span class="typing-cursor">|</span>`;
+          el.innerHTML = `<span class="typed-text ${el.tagName === 'H2' ? 'typed-text-h2' : 'typed-text-p'}" aria-live="polite"></span>`;
           const typedSpan = el.querySelector('.typed-text');
           const proxy = { i: 0 };
           const total = fullText.length;
