@@ -219,7 +219,24 @@
           end: '+=60%',
           scrub: true,
           pin: true,
-          pinSpacing: false
+          pinSpacing: false,
+          onUpdate: (self) => {
+            const blurValue = self.progress * 20;
+            if (self.progress > 0.5) {
+                gsap.to('.hfv__video', {
+                    filter: `blur(${blurValue}px)`,
+                    ease: 'power1.inOut',
+                    overwrite: 'auto',
+                  });
+            } else {
+                gsap.to('.hfv__video', {
+                    filter: 'blur(0px)',
+                    ease: 'power1.inOut',
+                    overwrite: 'auto',
+                    duration: 0.1
+                  });
+            }
+          }
         }
       });
     
